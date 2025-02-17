@@ -5,8 +5,8 @@ const cors = require('cors');
 
 const app = express();
 
-// Imposta il limite del payload e abilita CORS PRIMA delle rotte
-app.use(express.json({ limit: '20mb' }));  // Aumenta il limite a 10mb (modifica se necessario)
+// Middleware: Imposta il limite del payload e abilita CORS
+app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cors());
 
@@ -16,13 +16,16 @@ const userRoutes = require('./routes/users');
 const friendRoutes = require('./routes/friends');
 const messageRoutes = require('./routes/messages');
 const conversationRoutes = require('./routes/conversations');
+const postRoutes = require('./routes/posts');
+const notificationRoutes = require('./routes/notifications');
 
-// Rotte
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/friends', friendRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/conversations', conversationRoutes);
+app.use('/api/posts', postRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Connessione a MongoDB Atlas
 const uri = 'mongodb+srv://fumaghe:1909,Andre@echo.wom6a.mongodb.net/echo?retryWrites=true&w=majority';

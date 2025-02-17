@@ -1,7 +1,10 @@
+// client/src/pages/PartnerProfile.tsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { UserPlus, UserCheck, MessageSquare } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 
 interface UserData {
   _id: string;
@@ -9,26 +12,26 @@ interface UserData {
   fullName: string;
   avatarUrl?: string;
   bio?: string;
-  friends?: any[];
+  friends?: string[];
 }
 
 export function PartnerProfile() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { showToast } = useToast();
 
   if (!user) return <div>Caricamento utente...</div>;
 
   const stateUser = location.state?.user as UserData | undefined;
   const [profile, setProfile] = useState<UserData | null>(stateUser || null);
-
   const [friendsCount, setFriendsCount] = useState(0);
   const [postCount, setPostCount] = useState(0);
-  const [isFriend, setIsFriend] = useState<boolean>(true); // Se errore, assume Gia Amici
+  const [isFriend, setIsFriend] = useState<boolean>(false);
   const [loadingFriendship, setLoadingFriendship] = useState(false);
   const [errorFriendship, setErrorFriendship] = useState<string | null>(null);
+  const [friendModalOpen, setFriendModalOpen] = useState(false);
 
-  // Se il profilo non è passato via state, lo carichiamo dalla query string
   useEffect(() => {
     if (!profile && location.search) {
       const params = new URLSearchParams(location.search);
@@ -41,15 +44,12 @@ export function PartnerProfile() {
     }
   }, [location, profile]);
 
-  // Carica statistiche: amici e post
   useEffect(() => {
     if (profile && profile._id) {
-      // Amici
       axios.get(`http://localhost:5000/api/friends/${profile._id}`)
         .then(res => setFriendsCount(res.data.length))
         .catch(err => console.error('Errore amici partner:', err));
 
-      // Post
       axios.get(`http://localhost:5000/api/posts?user=${profile._id}`)
         .then(res => setPostCount(res.data.length))
         .catch(err => {
@@ -57,7 +57,6 @@ export function PartnerProfile() {
           setPostCount(0);
         });
 
-      // Verifica amicizia usando l'id reale dell'utente autenticato
       setLoadingFriendship(true);
       axios.get(`http://localhost:5000/api/friends/isFriend?userA=${user._id}&userB=${profile._id}`)
         .then(r => {
@@ -67,16 +66,17 @@ export function PartnerProfile() {
         .catch(err => {
           console.error('Errore verifica amicizia:', err);
           setLoadingFriendship(false);
-          setIsFriend(true);
+          setIsFriend(false);
         });
     }
   }, [profile, user]);
 
-  if (!profile) return (
-    <div className="h-screen flex items-center justify-center bg-gray-50">
-      Caricamento profilo...
-    </div>
-  );
+  if (!profile)
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-50">
+        Caricamento profilo...
+      </div>
+    );
 
   const handleAddFriend = async () => {
     try {
@@ -84,10 +84,12 @@ export function PartnerProfile() {
         fromUserId: user._id,
         toUserId: profile._id
       });
-      alert('Richiesta di amicizia inviata!');
+      showToast('Richiesta di amicizia inviata!', 'success');
       setIsFriend(true);
+      setFriendModalOpen(false);
     } catch (err) {
       console.error(err);
+      showToast('Errore nell\'invio della richiesta', 'error');
     }
   };
 
@@ -97,21 +99,23 @@ export function PartnerProfile() {
         userA: user._id,
         userB: profile._id
       });
-      alert('Amicizia rimossa!');
+      showToast('Amicizia rimossa!', 'success');
       setIsFriend(false);
+      setFriendModalOpen(false);
     } catch (err) {
       console.error(err);
+      showToast('Errore nella rimozione dell\'amicizia', 'error');
     }
   };
 
-  const handleBackToChat = () => {
-    navigate(-1);
-  };
+  const openFriendModal = () => setFriendModalOpen(true);
+  const closeFriendModal = () => setFriendModalOpen(false);
+  const handleBackToChat = () => navigate(-1);
+  const handleSendMessage = () => navigate('/chat', { state: { partnerId: profile._id } });
 
   return (
     <div className="flex flex-col items-center justify-center px-4 py-6 w-full bg-gray-50 min-h-screen">
       <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-md relative">
-        {/* Pulsante per tornare alla Chat */}
         <div className="absolute top-4 left-4">
           <button
             onClick={handleBackToChat}
@@ -120,7 +124,6 @@ export function PartnerProfile() {
             Torna alla Chat
           </button>
         </div>
-        {/* Avatar */}
         <div className="flex flex-col items-center -mt-8">
           <img
             src={profile.avatarUrl || 'https://placehold.co/150'}
@@ -128,7 +131,6 @@ export function PartnerProfile() {
             className="w-32 h-32 rounded-full object-cover border-4 border-white shadow"
           />
         </div>
-        {/* Statistiche */}
         <div className="flex justify-around mt-4 mb-2">
           <div className="text-center">
             <p className="text-lg font-bold">{friendsCount}</p>
@@ -139,38 +141,70 @@ export function PartnerProfile() {
             <p className="text-sm text-gray-500">Post</p>
           </div>
         </div>
-        {/* Username e nome completo */}
         <h2 className="text-xl font-bold text-center text-gray-800">{profile.username}</h2>
         <p className="text-center text-gray-600 mb-4">{profile.fullName}</p>
-        {/* Bio */}
         <div className="mb-4 text-center">
           <p className="text-sm text-gray-600">{profile.bio || 'Nessuna bio disponibile.'}</p>
         </div>
-        {/* Pulsante Aggiungi/Rimuovi Amico */}
-        {errorFriendship ? (
-          <p className="text-center text-sm text-gray-500">{errorFriendship}</p>
-        ) : (
-          <div className="flex justify-center">
-            {loadingFriendship ? (
-              <p className="text-sm text-gray-500">Caricamento...</p>
-            ) : isFriend ? (
-              <button
-                onClick={handleRemoveFriend}
-                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 text-sm"
-              >
-                Gia Amici
-              </button>
+        <div className="flex justify-around">
+          <button
+            onClick={handleSendMessage}
+            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 text-sm flex items-center gap-1"
+          >
+            <MessageSquare className="w-5 h-5" /> Messaggio
+          </button>
+          <button
+            onClick={openFriendModal}
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-sm flex items-center gap-1"
+          >
+            {isFriend ? (
+              <>
+                <UserCheck className="w-5 h-5" /> Gia Amici
+              </>
             ) : (
-              <button
-                onClick={handleAddFriend}
-                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-sm"
-              >
-                Aggiungi Amico
-              </button>
+              <>
+                <UserPlus className="w-5 h-5" /> Aggiungi Amico
+              </>
             )}
-          </div>
-        )}
+          </button>
+        </div>
       </div>
+
+      {friendModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+            <h3 className="text-xl font-bold mb-4">Gestisci Amicizia</h3>
+            {isFriend ? (
+              <p className="mb-4">Sei già amico. Vuoi rimuovere l'amicizia?</p>
+            ) : (
+              <p className="mb-4">Non sei ancora amico. Vuoi inviare una richiesta di amicizia?</p>
+            )}
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={closeFriendModal}
+                className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400 text-sm"
+              >
+                Annulla
+              </button>
+              {isFriend ? (
+                <button
+                  onClick={handleRemoveFriend}
+                  className="px-4 py-2 rounded bg-red-500 hover:bg-red-600 text-white text-sm"
+                >
+                  Rimuovi Amicizia
+                </button>
+              ) : (
+                <button
+                  onClick={handleAddFriend}
+                  className="px-4 py-2 rounded bg-blue-500 hover:bg-blue-600 text-white text-sm"
+                >
+                  Invia Richiesta
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

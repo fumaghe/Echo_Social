@@ -21,8 +21,8 @@ export function Notifications() {
         userId: user._id,
         fromUserId
       });
+      // Dopo aver accettato, puoi anche creare una notifica per l'utente mittente se desideri
       alert('Richiesta accettata!');
-      // Ricarica la lista
       const res = await axios.get(`http://localhost:5000/api/friends/requests/${user._id}`);
       setFriendRequests(res.data);
     } catch (err: any) {

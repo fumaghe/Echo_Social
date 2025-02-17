@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { MessageSquare, UserPlus, UserCheck } from 'lucide-react';
 
 export function Search() {
   const { user } = useAuth();
@@ -21,22 +20,9 @@ export function Search() {
     }
   };
 
-  const handleMessage = (partnerId: string) => {
-    // Naviga alla pagina Chat, passando l'id del partner nel state
-    navigate('/chat', { state: { partnerId } });
-  };
-
-  const handleAddFriend = async (toUserId: string) => {
-    if (!user) return;
-    try {
-      await axios.post('http://localhost:5000/api/friends/request', {
-        fromUserId: user._id,
-        toUserId
-      });
-      alert('Richiesta di amicizia inviata!');
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Errore');
-    }
+  const handleOpenProfile = (userData: any) => {
+    // Naviga al profilo partner passando l'oggetto utente nello state
+    navigate('/partner-profile', { state: { user: userData } });
   };
 
   return (
@@ -55,45 +41,18 @@ export function Search() {
         </button>
       </div>
       <div>
-        {results.map(u => {
-          // Se l'oggetto user include già l'array friends, verifica se l'utente è già amico
-          const isAlreadyFriend = user?.friends && Array.isArray(user.friends)
-            ? user.friends.includes(u._id)
-            : false;
-          return (
-            <div key={u._id} className="flex items-center p-2 border-b">
-              <div className="flex-1">
-                <p className="font-bold">{u.username}</p>
-                <p className="text-sm text-gray-600">{u.fullName}</p>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleMessage(u._id)}
-                  className="bg-green-500 text-white p-2 rounded hover:bg-green-600"
-                  title="Invia Messaggio"
-                >
-                  <MessageSquare className="w-5 h-5" />
-                </button>
-                {isAlreadyFriend ? (
-                  <button
-                    className="bg-gray-400 text-white p-2 rounded cursor-default"
-                    title="Gia Amici"
-                  >
-                    <UserCheck className="w-5 h-5" />
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handleAddFriend(u._id)}
-                    className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
-                    title="Aggiungi Amico"
-                  >
-                    <UserPlus className="w-5 h-5" />
-                  </button>
-                )}
-              </div>
+        {results.map(u => (
+          <div
+            key={u._id}
+            className="flex items-center p-2 border-b cursor-pointer hover:bg-gray-100"
+            onClick={() => handleOpenProfile(u)}
+          >
+            <div className="flex-1">
+              <p className="font-bold">{u.username}</p>
+              <p className="text-sm text-gray-600">{u.fullName}</p>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
     </div>
   );
