@@ -1,4 +1,3 @@
-// client/src/pages/Profile.tsx
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
@@ -10,13 +9,24 @@ export function Profile() {
   const [bio, setBio] = useState(user?.bio || '');
   const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || '');
   const [friends, setFriends] = useState<any[]>([]);
+  const [postCount, setPostCount] = useState(0);
 
   useEffect(() => {
     if (user) {
-      // Carica lista amici
+      // Carica amici (se l'endpoint esiste)
       axios.get(`http://localhost:5000/api/friends/${user._id}`)
         .then(res => setFriends(res.data))
-        .catch(err => console.error(err));
+        .catch(err => {
+          console.error('Impossibile caricare amici:', err);
+        });
+
+      // Carica i post (se l'endpoint esiste, altrimenti fallback a 0)
+      axios.get(`http://localhost:5000/api/posts?user=${user._id}`)
+        .then(res => setPostCount(res.data.length))
+        .catch(err => {
+          console.error('Impossibile caricare post:', err);
+          setPostCount(0);
+        });
     }
   }, [user]);
 
@@ -31,65 +41,108 @@ export function Profile() {
     logout();
   };
 
+  // Gestione del file: accetta tutti i formati di immagine (image/*)
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Per favore carica un file immagine.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (reader.result) {
+        setAvatarUrl(reader.result.toString());
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 md:ml-16">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Profilo</h1>
-        <button onClick={handleLogout} className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
-          Logout
-        </button>
-      </div>
-      <div className="bg-white p-4 rounded shadow">
-        <div className="flex items-center">
-          <img
-            src={avatarUrl || 'https://via.placeholder.com/80'}
-            alt={user.username}
-            className="w-20 h-20 rounded-full"
-          />
-          <div className="ml-4">
-            <h2 className="text-xl font-bold">{user.username}</h2>
-            <p className="text-gray-600">{fullName}</p>
-            <p className="text-sm text-gray-500">Amici: {friends.length}</p>
+    <div className="flex flex-col items-center justify-center px-4 py-6 w-full bg-gray-50 min-h-screen">
+      <div className="bg-white shadow-md rounded-lg p-6 w-full max-w-md relative">
+        {/* Pulsante Logout */}
+        <div className="absolute top-4 right-4">
+          <button
+            onClick={handleLogout}
+            className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-sm"
+          >
+            Logout
+          </button>
+        </div>
+
+        {/* Avatar al centro */}
+        <div className="flex flex-col items-center">
+          <div className="relative">
+            <img
+              src={avatarUrl || 'https://placehold.co/150'}
+              alt={user.username}
+              className="w-32 h-32 rounded-full object-cover border-4 border-white shadow -mt-8"
+            />
           </div>
         </div>
+
+        {/* Statistiche */}
+        <div className="flex justify-around mt-4 mb-2">
+          <div className="text-center">
+            <p className="text-lg font-bold">{friends.length}</p>
+            <p className="text-sm text-gray-500">Amici</p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg font-bold">{postCount}</p>
+            <p className="text-sm text-gray-500">Post</p>
+          </div>
+        </div>
+
+        {/* Username */}
+        <h2 className="text-xl font-bold text-center text-gray-800">{user.username}</h2>
+
         {editing ? (
           <div className="mt-4">
             <div className="mb-4">
-              <label className="block text-gray-700 mb-2">Nome Completo</label>
+              <label className="block text-gray-700 text-sm mb-1">Nome Completo</label>
               <input
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="w-full border border-gray-300 p-2 rounded"
+                className="w-full border border-gray-300 p-2 rounded focus:outline-none"
               />
             </div>
             <div className="mb-4">
-              <label className="block text-gray-700 mb-2">Bio</label>
+              <label className="block text-gray-700 text-sm mb-1">Bio</label>
               <textarea
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                className="w-full border border-gray-300 p-2 rounded"
+                rows={3}
+                className="w-full border border-gray-300 p-2 rounded focus:outline-none"
               />
             </div>
             <div className="mb-4">
-              <label className="block text-gray-700 mb-2">Avatar URL</label>
+              <label className="block text-gray-700 text-sm mb-1">Cambia Avatar</label>
               <input
-                type="text"
-                value={avatarUrl}
-                onChange={(e) => setAvatarUrl(e.target.value)}
-                className="w-full border border-gray-300 p-2 rounded"
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="text-sm"
               />
             </div>
-            <button onClick={handleSave} className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
-              Salva
-            </button>
+            <div className="flex justify-end">
+              <button
+                onClick={handleSave}
+                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+              >
+                Salva
+              </button>
+            </div>
           </div>
         ) : (
-          <div className="mt-4">
-            <p className="mb-2"><strong>Nome Completo:</strong> {fullName}</p>
-            <p className="mb-2"><strong>Bio:</strong> {bio || 'Nessuna bio impostata'}</p>
-            <button onClick={() => setEditing(true)} className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-              Modifica
+          <div className="mt-4 text-center">
+            <p className="text-sm text-gray-600 mb-2">{bio || 'Nessuna bio impostata'}</p>
+            <button
+              onClick={() => setEditing(true)}
+              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-sm"
+            >
+              Modifica Profilo
             </button>
           </div>
         )}

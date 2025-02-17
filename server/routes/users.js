@@ -33,4 +33,16 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// Aggiorna utente per ID
+router.put('/:id', async (req, res) => {
+  try {
+    const updatedUser = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updatedUser) return res.status(404).json({ message: 'Utente non trovato' });
+    res.json(updatedUser);
+  } catch(err) {
+    console.error(err);
+    res.status(500).json({ message: 'Errore del server' });
+  }
+});
+
 module.exports = router;

@@ -10,6 +10,7 @@ import { Notifications } from './pages/Notifications';
 import { Settings } from './pages/Settings';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
+import { PartnerProfile } from './pages/PartnerProfile';
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
           <Route path="/search" element={<ProtectedRoute><Search /></ProtectedRoute>} />
           <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/partner-profile" element={<ProtectedRoute><PartnerProfile /></ProtectedRoute>} />
         </Routes>
       </Router>
     </AuthProvider>

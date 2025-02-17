@@ -7,7 +7,6 @@ router.get('/', async (req, res) => {
   if (!userId) return res.status(400).json({ message: 'userId is required' });
   
   try {
-    // Trova tutti i messaggi che coinvolgono l'utente
     const messages = await Message.find({
       $or: [
         { sender: userId },
@@ -15,30 +14,33 @@ router.get('/', async (req, res) => {
       ]
     }).sort({ createdAt: -1 });
     
-    // Raggruppa i messaggi per conversazione (supponiamo chat 1-to-1)
     const conversationsMap = {};
     messages.forEach(msg => {
       let partnerId;
       if (msg.sender.toString() === userId) {
-        // Assumiamo che ci sia un solo destinatario
         partnerId = msg.recipients[0].toString();
       } else {
         partnerId = msg.sender.toString();
       }
       if (!conversationsMap[partnerId]) {
-        conversationsMap[partnerId] = msg;
+        conversationsMap[partnerId] = { lastMessage: msg, unreadCount: 0 };
+      }
+      // Se il messaggio è inviato dall'altro utente e non è letto, incrementa unreadCount
+      if (msg.sender.toString() !== userId && !msg.read) {
+        conversationsMap[partnerId].unreadCount++;
       }
     });
     
     const conversations = Object.keys(conversationsMap).map(partnerId => ({
       partnerId,
-      lastMessage: conversationsMap[partnerId]
+      lastMessage: conversationsMap[partnerId].lastMessage,
+      unreadCount: conversationsMap[partnerId].unreadCount
     }));
     
     res.json(conversations);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Errore del server' });
   }
 });
 
