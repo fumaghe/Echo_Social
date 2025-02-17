@@ -1,3 +1,4 @@
+// client/src/context/AuthContext.tsx
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 
@@ -23,7 +24,6 @@ const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
 
-  // Carica l'utente dal localStorage
   useEffect(() => {
     const storedUser = localStorage.getItem('currentUser');
     if (storedUser) {

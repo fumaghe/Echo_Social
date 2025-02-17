@@ -13,7 +13,7 @@ const UserSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-// Hash della password prima del salvataggio
+// Hash password
 UserSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
   try {

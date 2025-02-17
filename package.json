@@ -1,0 +1,19 @@
+{
+    "name": "echo_social",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "start:server": "cd server && npm run dev",
+        "start:client": "cd client && npm run dev",
+        "start": "concurrently \"npm run start:server\" \"npm run start:client\""
+    },
+    "devDependencies": {
+        "autoprefixer": "^10.4.20",
+        "concurrently": "^8.2.2",
+        "postcss": "^8.5.2",
+        "tailwindcss": "^4.0.6"
+    },
+    "dependencies": {
+        "lucide-react": "^0.475.0"
+    }
+}

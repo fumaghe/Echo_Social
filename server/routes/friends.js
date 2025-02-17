@@ -11,33 +11,33 @@ router.post('/request', async (req, res) => {
     if(!toUser) return res.status(404).json({ message: 'Utente non trovato' });
     
     if(toUser.friends.includes(fromUserId)) {
-      return res.status(400).json({ message: 'Già amici' });
+      return res.status(400).json({ message: 'Siete già amici' });
     }
-    
     if(toUser.friendRequests.includes(fromUserId)) {
       return res.status(400).json({ message: 'Richiesta già inviata' });
     }
     
     toUser.friendRequests.push(fromUserId);
     await toUser.save();
-    res.json({ message: 'Richiesta inviata' });
+    res.json({ message: 'Richiesta di amicizia inviata' });
   } catch(err) {
+    console.error(err);
     res.status(500).json({ message: 'Errore del server' });
   }
 });
 
-// Accetta richiesta
+// Accetta richiesta di amicizia
 router.post('/accept', async (req, res) => {
   const { userId, fromUserId } = req.body;
   try {
     const user = await User.findById(userId);
     const requester = await User.findById(fromUserId);
-    if(!user || !requester) return res.status(404).json({ message: 'Utente non trovato' });
-    
+    if(!user || !requester) {
+      return res.status(404).json({ message: 'Utente non trovato' });
+    }
     if(!user.friendRequests.includes(fromUserId)) {
       return res.status(400).json({ message: 'Nessuna richiesta da questo utente' });
     }
-    
     user.friends.push(fromUserId);
     requester.friends.push(userId);
     user.friendRequests = user.friendRequests.filter(id => id.toString() !== fromUserId);
@@ -46,6 +46,7 @@ router.post('/accept', async (req, res) => {
     await requester.save();
     res.json({ message: 'Richiesta accettata' });
   } catch(err) {
+    console.error(err);
     res.status(500).json({ message: 'Errore del server' });
   }
 });
@@ -58,11 +59,12 @@ router.get('/requests/:userId', async (req, res) => {
     if(!user) return res.status(404).json({ message: 'Utente non trovato' });
     res.json(user.friendRequests);
   } catch(err) {
+    console.error(err);
     res.status(500).json({ message: 'Errore del server' });
   }
 });
 
-// Ottieni la lista degli amici
+// Ottieni la lista di amici
 router.get('/:userId', async (req, res) => {
   try {
     const user = await User.findById(req.params.userId)
@@ -70,6 +72,7 @@ router.get('/:userId', async (req, res) => {
     if(!user) return res.status(404).json({ message: 'Utente non trovato' });
     res.json(user.friends);
   } catch(err) {
+    console.error(err);
     res.status(500).json({ message: 'Errore del server' });
   }
 });
