@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+// client/src/pages/Login.tsx
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -10,7 +11,14 @@ export function Login() {
   const [error, setError] = useState<string | null>(null);
 
   const navigate = useNavigate();
-  const { login, register } = useAuth();
+  const { user, login, register, loginWithSpotify } = useAuth();
+
+  // Se l'utente è già autenticato, reindirizza automaticamente alla home
+  useEffect(() => {
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +30,7 @@ export function Login() {
       success = await login(username, password);
       if (!success) setError('Credenziali non valide');
     }
-    if (success) navigate('/');
+    // Se il login/registrazione ha successo, navigate verrà chiamato dall'useEffect
   };
 
   return (
@@ -97,6 +105,19 @@ export function Login() {
             {isRegister ? 'Accedi' : 'Registrati'}
           </button>
         </p>
+
+        {/* Pulsante per login con Spotify */}
+        {!isRegister && (
+          <div className="mt-6 text-center">
+            <button
+              type="button"
+              onClick={loginWithSpotify}
+              className="bg-green-600 text-white p-2 rounded hover:bg-green-700"
+            >
+              Accedi con Spotify
+            </button>
+          </div>
+        )}
       </form>
     </div>
   );

@@ -1,11 +1,14 @@
 // client/src/components/MusicPost.tsx
 import React, { useState } from 'react';
 import { Heart, MessageCircle, Share2, MoreHorizontal } from 'lucide-react';
+import { SpotifyPlayer } from './SpotifyPlayer';
+import { useAuth } from '../context/AuthContext';
 
 interface User {
   _id: string;
   username: string;
   avatarUrl?: string;
+  // Aggiungi se vuoi: spotifyAccessToken?: string; ...
 }
 
 export interface Post {
@@ -17,8 +20,8 @@ export interface Post {
   likesCount: number;
   commentsCount: number;
   createdAt: string;
-  coverUrl?: string; 
-  trackUrl?: string;  // <--- Aggiunto
+  coverUrl?: string;
+  trackUrl?: string;
   likes?: string[];
   comments?: {
     user: string;
@@ -39,6 +42,10 @@ export function MusicPost({ post, onLike, onComment, onShare }: MusicPostProps) 
   const [showCommentBox, setShowCommentBox] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [showCommentsList, setShowCommentsList] = useState(false);
+  const [showPlayer, setShowPlayer] = useState(false);
+
+  // Recuperiamo l'utente dal contesto Auth
+  const { user: currentUser } = useAuth();
 
   const handleCommentSubmit = () => {
     if (commentText.trim()) {
@@ -53,25 +60,38 @@ export function MusicPost({ post, onLike, onComment, onShare }: MusicPostProps) 
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  // Se esiste trackUrl, rendiamo la copertina cliccabile
-  const renderCover = () => {
-    if (post.coverUrl && post.trackUrl) {
-      return (
-        <a href={post.trackUrl} target="_blank" rel="noopener noreferrer">
-          <img src={post.coverUrl} alt={post.songTitle} className="mt-2 w-full rounded" />
-        </a>
-      );
-    } else if (post.coverUrl) {
-      return (
-        <img src={post.coverUrl} alt={post.songTitle} className="mt-2 w-full rounded" />
-      );
+  // Se l'utente è loggato con Spotify (ovvero ha un access token), cliccare la copertina
+  // mostrerà il player. Altrimenti, cliccare reindirizza a Spotify.
+  const handleCoverClick = () => {
+    if (!post.trackUrl) return;
+    if (currentUser?.spotifyAccessToken) {
+      // Se l'utente ha Spotify, mostra il player
+      setShowPlayer(true);
     } else {
+      // Altrimenti, apri la pagina di Spotify in una nuova scheda
+      window.open(post.trackUrl, '_blank');
+    }
+  };
+
+  const renderCoverOrPlayer = () => {
+    if (showPlayer && post.trackUrl && currentUser?.spotifyAccessToken) {
+      return <SpotifyPlayer trackUrl={post.trackUrl} />;
+    }
+    if (post.coverUrl) {
       return (
-        <div className="mt-2 h-20 bg-gray-200 rounded flex items-center justify-center">
-          <span className="text-gray-500">Spotify/YouTube Player</span>
-        </div>
+        <img
+          src={post.coverUrl}
+          alt={post.songTitle}
+          className="mt-2 w-full rounded cursor-pointer"
+          onClick={handleCoverClick}
+        />
       );
     }
+    return (
+      <div className="mt-2 h-20 bg-gray-200 rounded flex items-center justify-center">
+        <span className="text-gray-500">Nessun brano</span>
+      </div>
+    );
   };
 
   return (
@@ -85,7 +105,9 @@ export function MusicPost({ post, onLike, onComment, onShare }: MusicPostProps) 
           />
           <div className="ml-3">
             <h3 className="font-medium">{post.user?.username || 'Unknown User'}</h3>
-            <p className="text-sm text-gray-500">{new Date(post.createdAt).toLocaleDateString()}</p>
+            <p className="text-sm text-gray-500">
+              {new Date(post.createdAt).toLocaleDateString()}
+            </p>
           </div>
         </div>
         <button className="text-gray-400 hover:text-gray-600">
@@ -96,13 +118,16 @@ export function MusicPost({ post, onLike, onComment, onShare }: MusicPostProps) 
       <div className="mt-4 bg-gray-100 p-4 rounded-lg">
         <h4 className="font-semibold">{post.songTitle}</h4>
         <p className="text-gray-600">{post.artist}</p>
-        {renderCover()}
+        {renderCoverOrPlayer()}
       </div>
 
       <p className="mt-3 text-gray-700">{post.description}</p>
 
       <div className="mt-4 flex items-center gap-6 text-gray-500">
-        <button onClick={() => onLike(post._id)} className="flex items-center gap-2 hover:text-red-500">
+        <button
+          onClick={() => onLike(post._id)}
+          className="flex items-center gap-2 hover:text-red-500"
+        >
           <Heart className="w-5 h-5" />
           <span>{post.likesCount}</span>
         </button>
@@ -113,7 +138,10 @@ export function MusicPost({ post, onLike, onComment, onShare }: MusicPostProps) 
           <MessageCircle className="w-5 h-5" />
           <span>{post.commentsCount}</span>
         </button>
-        <button onClick={() => onShare(post._id)} className="flex items-center gap-2 hover:text-green-500">
+        <button
+          onClick={() => onShare(post._id)}
+          className="flex items-center gap-2 hover:text-green-500"
+        >
           <Share2 className="w-5 h-5" />
         </button>
       </div>
@@ -128,7 +156,10 @@ export function MusicPost({ post, onLike, onComment, onShare }: MusicPostProps) 
             rows={2}
           />
           <div className="flex justify-end mt-1">
-            <button onClick={handleCommentSubmit} className="px-3 py-1 bg-blue-500 text-white rounded">
+            <button
+              onClick={handleCommentSubmit}
+              className="px-3 py-1 bg-blue-500 text-white rounded"
+            >
               Invia
             </button>
           </div>

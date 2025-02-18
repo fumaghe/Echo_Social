@@ -14,7 +14,7 @@ export function Home() {
   const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   
-  // Stati per la ricerca di brani via Spotify
+  // Stati per la ricerca di brani
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [selectedTrack, setSelectedTrack] = useState<any>(null);
@@ -60,7 +60,7 @@ export function Home() {
     setSearchQuery('');
   };
 
-  // Creazione del post (salviamo trackUrl)
+  // Creazione del post (salviamo anche trackUrl)
   const handleCreatePost = async () => {
     if (!user) {
       alert("Devi essere autenticato!");
@@ -132,13 +132,13 @@ export function Home() {
     }
   };
 
-  // Share: apre il modal
+  // Handler per share: apre il modal
   const handleShare = (postId: string) => {
     setSharePostId(postId);
     setShareModalOpen(true);
   };
 
-  // Invia il post in chat (con link Spotify e cover)
+  // Invia il post condiviso: crea un riepilogo del post da condividere
   const sendSharedPost = async (friendId: string, extraMessage: string) => {
     if (!user) return;
     try {
@@ -148,8 +148,8 @@ export function Home() {
         postSummary = `Post di ${sharedPost.user.username}\n${sharedPost.description}\n`;
         if (sharedPost.songTitle) {
           postSummary += `Canzone: ${sharedPost.songTitle} di ${sharedPost.artist}\n`;
-          postSummary += `Ascolta qui: ${sharedPost.trackUrl}\n`; 
-          postSummary += `Cover: ${sharedPost.coverUrl}\n`; // se vuoi passare la cover
+          postSummary += `Ascolta qui: ${sharedPost.trackUrl}\n`;
+          postSummary += `Cover: ${sharedPost.coverUrl}\n`;
         }
       }
       const content = extraMessage ? `${postSummary}\nMessaggio: ${extraMessage}` : postSummary;

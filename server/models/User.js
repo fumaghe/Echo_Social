@@ -10,7 +10,11 @@ const UserSchema = new mongoose.Schema({
   bio: { type: String, default: '' },
   friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   friendRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  // Campi Spotify
+  spotifyId: { type: String, default: '' },
+  spotifyAccessToken: { type: String, default: '' },
+  spotifyRefreshToken: { type: String, default: '' }
 });
 
 // Hash password

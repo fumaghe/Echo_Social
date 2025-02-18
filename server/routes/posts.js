@@ -12,17 +12,17 @@ const PostSchema = new mongoose.Schema({
     avatarUrl: { type: String, default: '' }
   },
   description: { type: String, default: '' },
-  imageUrl: { type: String, default: '' },   // Foto opzionale del post
+  imageUrl: { type: String, default: '' },
   songTitle: { type: String, default: '' },
   artist: { type: String, default: '' },
-  coverUrl: { type: String, default: '' },   // Copertina Spotify
-  trackUrl: { type: String, default: '' },   // Link a Spotify
+  coverUrl: { type: String, default: '' },    // URL della copertina
+  trackUrl: { type: String, default: '' },    // Link diretto a Spotify
   likesCount: { type: Number, default: 0 },
   likes: [{ type: String }],
   commentsCount: { type: Number, default: 0 },
   comments: [{
     user: { type: String, required: true },
-    username: { type: String, required: true, default: '' },
+    username: { type: String, required: true, default: '' }, // Nome del commentatore
     text: { type: String, required: true },
     createdAt: { type: Date, default: Date.now }
   }],
@@ -58,7 +58,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// POST: Toggle like
+// POST: Toggle like per un post e genera notifica
 router.post('/:id/like', async (req, res) => {
   try {
     const { userId, username } = req.body;
@@ -70,7 +70,6 @@ router.post('/:id/like', async (req, res) => {
     const likeIndex = post.likes.indexOf(userId);
     if (likeIndex === -1) {
       post.likes.push(userId);
-      // Notifica se il liker non è l'autore
       if (userId !== post.user._id) {
         await Notification.create({
           user: post.user._id,
@@ -90,7 +89,7 @@ router.post('/:id/like', async (req, res) => {
   }
 });
 
-// POST: Aggiungi un commento
+// POST: Aggiungi un commento a un post e genera notifica
 router.post('/:id/comment', async (req, res) => {
   try {
     const { userId, text, username } = req.body;
@@ -101,7 +100,6 @@ router.post('/:id/comment', async (req, res) => {
 
     post.comments.push({ user: userId, username, text });
     post.commentsCount = post.comments.length;
-    // Notifica se chi commenta non è l'autore
     if (userId !== post.user._id) {
       await Notification.create({
         user: post.user._id,

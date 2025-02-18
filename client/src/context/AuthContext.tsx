@@ -10,6 +10,9 @@ export interface User {
   bio?: string;
   createdAt: string;
   friends?: string[];
+  spotifyId?: string;
+  spotifyAccessToken?: string;
+  spotifyRefreshToken?: string;
 }
 
 interface AuthContextProps {
@@ -18,11 +21,10 @@ interface AuthContextProps {
   register: (username: string, password: string, fullName: string) => Promise<boolean>;
   logout: () => void;
   updateProfile: (data: Partial<User>) => Promise<boolean>;
+  loginWithSpotify: () => void; // Aggiunto qui
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
-
-// Leggi la base URL da env
 const API_URL = import.meta.env.VITE_API_URL;
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -77,8 +79,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // Funzione per effettuare il login tramite Spotify
+  const loginWithSpotify = () => {
+    window.location.href = `${API_URL}/api/auth/spotify`;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, login, register, logout, updateProfile, loginWithSpotify }}>
       {children}
     </AuthContext.Provider>
   );
