@@ -2,9 +2,13 @@ name: Deploy Client to GitHub Pages
 
 on:
   push:
-    branches: [ "main" ]  # il branch su cui lavori, modifica se necessario
+    branches: [ "main" ]  # Se il tuo branch di sviluppo è "main"
+  # Se non ti serve l'evento su pull_request, puoi anche rimuoverlo
   pull_request:
     branches: [ "main" ]
+
+permissions:
+  contents: write    # NECESSARIO per poter pushare sul branch gh-pages
 
 jobs:
   build-and-deploy:
@@ -18,6 +22,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 16
+      # Se preferisci node 18, imposta node-version: 18
 
       - name: Install dependencies
         run: npm install
@@ -31,5 +36,5 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./client/dist
           publish_branch: gh-pages
+          publish_dir: ./client/dist
