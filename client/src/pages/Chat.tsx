@@ -1,9 +1,5 @@
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  KeyboardEvent
-} from 'react';
+// client/src/pages/Chat.tsx
+import React, { useState, useEffect, useRef, KeyboardEvent } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, Search, MoreHorizontal, Trash2 } from 'lucide-react';
@@ -31,6 +27,9 @@ interface Message {
   delivered: boolean;
   read: boolean;
 }
+
+// Leggi la base URL da env
+const API_URL = import.meta.env.VITE_API_URL;
 
 export function Chat() {
   const { user } = useAuth();
@@ -70,10 +69,10 @@ export function Chat() {
   // Carica conversazioni
   const loadConversations = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/conversations?userId=${user._id}`);
+      const res = await axios.get(`${API_URL}/api/conversations?userId=${user._id}`);
       setConversations(res.data);
       const uniqueIds = Array.from(new Set(res.data.map((c: Conversation) => c.partnerId)));
-      const requests = uniqueIds.map(id => axios.get(`http://localhost:5000/api/users/${id}`));
+      const requests = uniqueIds.map(id => axios.get(`${API_URL}/api/users/${id}`));
       const results = await Promise.all(requests);
       const newPartners: Record<string, UserData> = {};
       results.forEach(r => {
@@ -100,7 +99,7 @@ export function Chat() {
   // Carica i messaggi della chat attiva
   const loadMessages = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/messages?user1=${user._id}&user2=${selectedPartnerId}`);
+      const res = await axios.get(`${API_URL}/api/messages?user1=${user._id}&user2=${selectedPartnerId}`);
       setChatMessages(res.data);
     } catch (err) {
       console.error(err);
@@ -127,7 +126,7 @@ export function Chat() {
   const handleSendMessage = async () => {
     if (!selectedPartnerId || !messageText.trim()) return;
     try {
-      await axios.post('http://localhost:5000/api/messages', {
+      await axios.post(`${API_URL}/api/messages`, {
         sender: user._id,
         recipients: [selectedPartnerId],
         content: messageText
@@ -162,7 +161,8 @@ export function Chat() {
       if (partnersData[selectedPartnerId]) {
         setSelectedPartnerData(partnersData[selectedPartnerId]);
       } else {
-        axios.get(`http://localhost:5000/api/users/${selectedPartnerId}`)
+        axios
+          .get(`${API_URL}/api/users/${selectedPartnerId}`)
           .then(r => setSelectedPartnerData(r.data))
           .catch(err => console.error(err));
       }
@@ -187,7 +187,7 @@ export function Chat() {
   const handleSearchUsers = async () => {
     if (!userSearchQuery.trim()) return;
     try {
-      const res = await axios.get(`http://localhost:5000/api/users/search?q=${userSearchQuery}`);
+      const res = await axios.get(`${API_URL}/api/users/search?q=${userSearchQuery}`);
       const filtered = res.data.filter((u: any) => u._id !== user._id);
       setUserSearchResults(filtered);
     } catch (err) {
@@ -237,7 +237,7 @@ export function Chat() {
   const handleDeleteConversation = async () => {
     if (!selectedPartnerId) return;
     try {
-      await axios.delete(`http://localhost:5000/api/messages?user1=${user._id}&user2=${selectedPartnerId}`);
+      await axios.delete(`${API_URL}/api/messages?user1=${user._id}&user2=${selectedPartnerId}`);
       setChatMenuOpen(false);
       setViewMode('list');
       setSelectedPartnerId('');
@@ -252,7 +252,7 @@ export function Chat() {
   // Eliminazione di un singolo messaggio
   const handleDeleteMessage = async (msgId: string) => {
     try {
-      await axios.delete(`http://localhost:5000/api/messages/${msgId}`);
+      await axios.delete(`${API_URL}/api/messages/${msgId}`);
       loadMessages();
       loadConversations();
     } catch (err) {

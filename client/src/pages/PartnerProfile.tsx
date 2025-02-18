@@ -15,6 +15,8 @@ interface UserData {
   friends?: string[];
 }
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export function PartnerProfile() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -37,7 +39,8 @@ export function PartnerProfile() {
       const params = new URLSearchParams(location.search);
       const userId = params.get('userId');
       if (userId) {
-        axios.get(`http://localhost:5000/api/users/${userId}`)
+        axios
+          .get(`${API_URL}/api/users/${userId}`)
           .then(res => setProfile(res.data))
           .catch(err => console.error(err));
       }
@@ -46,11 +49,13 @@ export function PartnerProfile() {
 
   useEffect(() => {
     if (profile && profile._id) {
-      axios.get(`http://localhost:5000/api/friends/${profile._id}`)
+      axios
+        .get(`${API_URL}/api/friends/${profile._id}`)
         .then(res => setFriendsCount(res.data.length))
         .catch(err => console.error('Errore amici partner:', err));
 
-      axios.get(`http://localhost:5000/api/posts?user=${profile._id}`)
+      axios
+        .get(`${API_URL}/api/posts?user=${profile._id}`)
         .then(res => setPostCount(res.data.length))
         .catch(err => {
           console.error('Errore post partner:', err);
@@ -58,7 +63,8 @@ export function PartnerProfile() {
         });
 
       setLoadingFriendship(true);
-      axios.get(`http://localhost:5000/api/friends/isFriend?userA=${user._id}&userB=${profile._id}`)
+      axios
+        .get(`${API_URL}/api/friends/isFriend?userA=${user._id}&userB=${profile._id}`)
         .then(r => {
           setIsFriend(r.data.isFriend);
           setLoadingFriendship(false);
@@ -80,7 +86,7 @@ export function PartnerProfile() {
 
   const handleAddFriend = async () => {
     try {
-      await axios.post('http://localhost:5000/api/friends/request', {
+      await axios.post(`${API_URL}/api/friends/request`, {
         fromUserId: user._id,
         toUserId: profile._id
       });
@@ -95,7 +101,7 @@ export function PartnerProfile() {
 
   const handleRemoveFriend = async () => {
     try {
-      await axios.post('http://localhost:5000/api/friends/remove', {
+      await axios.post(`${API_URL}/api/friends/remove`, {
         userA: user._id,
         userB: profile._id
       });

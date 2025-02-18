@@ -1,7 +1,10 @@
+// client/src/pages/Search.tsx
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 export function Search() {
   const { user } = useAuth();
@@ -11,7 +14,7 @@ export function Search() {
 
   const handleSearch = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/users/search?q=${query}`);
+      const res = await axios.get(`${API_URL}/api/users/search?q=${query}`);
       // Escludi l’utente corrente
       const filtered = res.data.filter((u: any) => u._id !== user?._id);
       setResults(filtered);
@@ -21,7 +24,6 @@ export function Search() {
   };
 
   const handleOpenProfile = (userData: any) => {
-    // Naviga al profilo partner passando l'oggetto utente nello state
     navigate('/partner-profile', { state: { user: userData } });
   };
 

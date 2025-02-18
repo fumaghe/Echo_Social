@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export function Profile() {
   const { user, logout, updateProfile } = useAuth();
   const [editing, setEditing] = useState(false);
@@ -13,15 +15,15 @@ export function Profile() {
 
   useEffect(() => {
     if (user) {
-      // Carica amici (se l'endpoint esiste)
-      axios.get(`http://localhost:5000/api/friends/${user._id}`)
+      axios
+        .get(`${API_URL}/api/friends/${user._id}`)
         .then(res => setFriends(res.data))
         .catch(err => {
           console.error('Impossibile caricare amici:', err);
         });
 
-      // Carica i post (se l'endpoint esiste, altrimenti fallback a 0)
-      axios.get(`http://localhost:5000/api/posts?user=${user._id}`)
+      axios
+        .get(`${API_URL}/api/posts?user=${user._id}`)
         .then(res => setPostCount(res.data.length))
         .catch(err => {
           console.error('Impossibile caricare post:', err);
@@ -41,7 +43,6 @@ export function Profile() {
     logout();
   };
 
-  // Gestione del file: accetta tutti i formati di immagine (image/*)
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -61,7 +62,6 @@ export function Profile() {
   return (
     <div className="flex flex-col items-center justify-center px-4 py-6 w-full bg-gray-50 min-h-screen">
       <div className="bg-white shadow-md rounded-lg p-6 w-full max-w-md relative">
-        {/* Pulsante Logout */}
         <div className="absolute top-4 right-4">
           <button
             onClick={handleLogout}
@@ -71,7 +71,6 @@ export function Profile() {
           </button>
         </div>
 
-        {/* Avatar al centro */}
         <div className="flex flex-col items-center">
           <div className="relative">
             <img
@@ -82,7 +81,6 @@ export function Profile() {
           </div>
         </div>
 
-        {/* Statistiche */}
         <div className="flex justify-around mt-4 mb-2">
           <div className="text-center">
             <p className="text-lg font-bold">{friends.length}</p>
@@ -94,7 +92,6 @@ export function Profile() {
           </div>
         </div>
 
-        {/* Username */}
         <h2 className="text-xl font-bold text-center text-gray-800">{user.username}</h2>
 
         {editing ? (
@@ -104,7 +101,7 @@ export function Profile() {
               <input
                 type="text"
                 value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
+                onChange={e => setFullName(e.target.value)}
                 className="w-full border border-gray-300 p-2 rounded focus:outline-none"
               />
             </div>
@@ -112,7 +109,7 @@ export function Profile() {
               <label className="block text-gray-700 text-sm mb-1">Bio</label>
               <textarea
                 value={bio}
-                onChange={(e) => setBio(e.target.value)}
+                onChange={e => setBio(e.target.value)}
                 rows={3}
                 className="w-full border border-gray-300 p-2 rounded focus:outline-none"
               />

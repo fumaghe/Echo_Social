@@ -3,13 +3,16 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export function Notifications() {
   const { user } = useAuth();
   const [friendRequests, setFriendRequests] = useState<any[]>([]);
 
   useEffect(() => {
     if (!user) return;
-    axios.get(`http://localhost:5000/api/friends/requests/${user._id}`)
+    axios
+      .get(`${API_URL}/api/friends/requests/${user._id}`)
       .then(res => setFriendRequests(res.data))
       .catch(err => console.error(err));
   }, [user]);
@@ -17,13 +20,12 @@ export function Notifications() {
   const handleAccept = async (fromUserId: string) => {
     if (!user) return;
     try {
-      await axios.post('http://localhost:5000/api/friends/accept', {
+      await axios.post(`${API_URL}/api/friends/accept`, {
         userId: user._id,
         fromUserId
       });
-      // Dopo aver accettato, puoi anche creare una notifica per l'utente mittente se desideri
       alert('Richiesta accettata!');
-      const res = await axios.get(`http://localhost:5000/api/friends/requests/${user._id}`);
+      const res = await axios.get(`${API_URL}/api/friends/requests/${user._id}`);
       setFriendRequests(res.data);
     } catch (err: any) {
       alert(err.response?.data?.message || 'Errore');

@@ -9,7 +9,7 @@ export interface User {
   avatarUrl?: string;
   bio?: string;
   createdAt: string;
-  friends?: string[]; 
+  friends?: string[];
 }
 
 interface AuthContextProps {
@@ -21,6 +21,9 @@ interface AuthContextProps {
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
+
+// Leggi la base URL da env
+const API_URL = import.meta.env.VITE_API_URL;
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -34,7 +37,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const login = async (username: string, password: string) => {
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/login', { username, password });
+      const res = await axios.post(`${API_URL}/api/auth/login`, { username, password });
       setUser(res.data.user);
       localStorage.setItem('currentUser', JSON.stringify(res.data.user));
       return true;
@@ -46,7 +49,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const register = async (username: string, password: string, fullName: string) => {
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/register', { username, password, fullName });
+      const res = await axios.post(`${API_URL}/api/auth/register`, { username, password, fullName });
       setUser(res.data.user);
       localStorage.setItem('currentUser', JSON.stringify(res.data.user));
       return true;
@@ -64,7 +67,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const updateProfile = async (data: Partial<User>) => {
     if (!user) return false;
     try {
-      const res = await axios.put(`http://localhost:5000/api/users/${user._id}`, data);
+      const res = await axios.put(`${API_URL}/api/users/${user._id}`, data);
       setUser(res.data);
       localStorage.setItem('currentUser', JSON.stringify(res.data));
       return true;
@@ -83,6 +86,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within an AuthProvider");
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };
