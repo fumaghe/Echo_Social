@@ -30,7 +30,7 @@ router.get('/search', async (req, res) => {
       return res.status(400).json({ error: 'Query parameter is required' });
     }
     const token = await getSpotifyToken();
-    const response = await axios.get('https://api.spotify.com/v1/search', {
+    const searchResponse = await axios.get('https://api.spotify.com/v1/search', {
       headers: {
         'Authorization': `Bearer ${token}`
       },
@@ -40,7 +40,7 @@ router.get('/search', async (req, res) => {
         limit: 5
       }
     });
-    res.json(response.data);
+    res.json(searchResponse.data);
   } catch (error) {
     console.error('Errore in /api/spotify/search:', error);
     res.status(500).json({ error: 'Errore interno' });

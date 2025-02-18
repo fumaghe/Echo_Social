@@ -1,5 +1,5 @@
 // client/src/components/MusicPost.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import { Heart, MessageCircle, Share2, MoreHorizontal } from 'lucide-react';
 
 interface User {
@@ -17,9 +17,11 @@ export interface Post {
   likesCount: number;
   commentsCount: number;
   createdAt: string;
+  coverUrl?: string; // Campo opzionale per la copertina
   likes?: string[];
   comments?: {
     user: string;
+    username: string; // Nome del commentatore
     text: string;
     createdAt: string;
   }[];
@@ -33,20 +35,36 @@ interface MusicPostProps {
 }
 
 export function MusicPost({ post, onLike, onComment, onShare }: MusicPostProps) {
+  const [showCommentBox, setShowCommentBox] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [showCommentsList, setShowCommentsList] = useState(false);
+
+  const handleCommentSubmit = () => {
+    if (commentText.trim()) {
+      onComment(post._id, commentText);
+      setCommentText('');
+      setShowCommentsList(true);
+    }
+  };
+
+  const formatTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   return (
     <article className="bg-white rounded-lg shadow-sm p-4 mb-4">
       <div className="flex items-start justify-between">
         <div className="flex items-center">
+          {/* Uso di un fallback per l'avatar */}
           <img
-            src={post.user.avatarUrl || 'https://via.placeholder.com/40'}
-            alt={post.user.username}
+            src={(post.user && post.user.avatarUrl) ? post.user.avatarUrl : 'https://dummyimage.com/40x40/ccc/fff'}
+            alt={post.user?.username || 'User'}
             className="w-10 h-10 rounded-full"
           />
           <div className="ml-3">
-            <h3 className="font-medium">{post.user.username}</h3>
-            <p className="text-sm text-gray-500">
-              {new Date(post.createdAt).toLocaleDateString()}
-            </p>
+            <h3 className="font-medium">{post.user?.username || 'Unknown User'}</h3>
+            <p className="text-sm text-gray-500">{new Date(post.createdAt).toLocaleDateString()}</p>
           </div>
         </div>
         <button className="text-gray-400 hover:text-gray-600">
@@ -58,10 +76,13 @@ export function MusicPost({ post, onLike, onComment, onShare }: MusicPostProps) 
         <div className="bg-gray-100 p-4 rounded-lg">
           <h4 className="font-semibold">{post.songTitle}</h4>
           <p className="text-gray-600">{post.artist}</p>
-          {/* Player placeholder */}
-          <div className="mt-2 h-20 bg-gray-200 rounded flex items-center justify-center">
-            <span className="text-gray-500">Spotify/YouTube Player</span>
-          </div>
+          {post.coverUrl ? (
+            <img src={post.coverUrl} alt={post.songTitle} className="mt-2 w-full rounded" />
+          ) : (
+            <div className="mt-2 h-20 bg-gray-200 rounded flex items-center justify-center">
+              <span className="text-gray-500">Spotify/YouTube Player</span>
+            </div>
+          )}
         </div>
         <p className="mt-3 text-gray-700">{post.description}</p>
       </div>
@@ -71,10 +92,7 @@ export function MusicPost({ post, onLike, onComment, onShare }: MusicPostProps) 
           <Heart className="w-5 h-5" />
           <span>{post.likesCount}</span>
         </button>
-        <button onClick={() => {
-            const comment = prompt("Inserisci un commento:");
-            if(comment) onComment(post._id, comment);
-        }} className="flex items-center gap-2 hover:text-blue-500">
+        <button onClick={() => setShowCommentBox(!showCommentBox)} className="flex items-center gap-2 hover:text-blue-500">
           <MessageCircle className="w-5 h-5" />
           <span>{post.commentsCount}</span>
         </button>
@@ -82,6 +100,33 @@ export function MusicPost({ post, onLike, onComment, onShare }: MusicPostProps) 
           <Share2 className="w-5 h-5" />
         </button>
       </div>
+
+      {showCommentBox && (
+        <div className="mt-2 transition-all duration-300 ease-in-out">
+          <textarea
+            value={commentText}
+            onChange={e => setCommentText(e.target.value)}
+            placeholder="Scrivi un commento..."
+            className="w-full border p-2 rounded focus:outline-none"
+            rows={2}
+          />
+          <div className="flex justify-end mt-1">
+            <button onClick={handleCommentSubmit} className="px-3 py-1 bg-blue-500 text-white rounded">
+              Invia
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showCommentsList && post.comments && post.comments.length > 0 && (
+        <div className="mt-2 border-t pt-2">
+          {post.comments.map((c, index) => (
+            <div key={index} className="mb-1 text-sm">
+              <span className="font-bold">{c.username}</span>: {c.text} <span className="text-gray-500">({formatTime(c.createdAt)})</span>
+            </div>
+          ))}
+        </div>
+      )}
     </article>
   );
 }

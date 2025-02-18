@@ -1,24 +1,29 @@
 // client/src/pages/Home.tsx
 import React, { useState, useEffect } from 'react';
 import { MusicPost, Post } from '../components/MusicPost';
+import { ShareModal } from '../components/ShareModal';
+import { useAuth } from '../context/AuthContext';
 
-// Imposta l'API URL in base all'ambiente (development o production)
 const API_URL = import.meta.env.VITE_API_URL;
 
 export function Home() {
-  // Stato per i post, inizialmente vuoto
+  const { user } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   
   // Stati per la creazione del nuovo post
   const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   
-  // Stati per la ricerca di canzoni via Spotify
+  // Stati per la ricerca di canzoni tramite Spotify
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [selectedTrack, setSelectedTrack] = useState<any>(null);
 
-  // Funzione per recuperare i post dal backend
+  // Stato per il modal di condivisione
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [sharePostId, setSharePostId] = useState<string>('');
+
+  // Recupera i post dal backend
   const fetchPosts = async () => {
     try {
       const res = await fetch(`${API_URL}/api/posts`);
@@ -39,22 +44,24 @@ export function Home() {
     try {
       const res = await fetch(`${API_URL}/api/spotify/search?query=${encodeURIComponent(searchQuery)}`);
       const data = await res.json();
-      // I risultati sono in data.tracks.items
       setSearchResults(data.tracks.items);
     } catch (err) {
       console.error(err);
     }
   };
 
-  // Selezione di una canzone dalla ricerca
   const handleSelectTrack = (track: any) => {
     setSelectedTrack(track);
     setSearchResults([]);
     setSearchQuery('');
   };
 
-  // Funzione per creare un nuovo post (invio al backend)
+  // Funzione per creare un nuovo post
   const handleCreatePost = async () => {
+    if (!user) {
+      alert("Devi essere autenticato!");
+      return;
+    }
     if (!description && !imageUrl && !selectedTrack) {
       alert("Inserisci almeno del testo, una foto o seleziona una canzone!");
       return;
@@ -62,9 +69,9 @@ export function Home() {
 
     const newPostData = {
       user: {
-        _id: 'currentUser',         // da sostituire con l'ID utente autenticato
-        username: 'currentUsername', // da sostituire con il nome utente
-        avatarUrl: ''
+        _id: user._id,
+        username: user.username,
+        avatarUrl: user.avatarUrl || ''
       },
       description,
       imageUrl,
@@ -81,7 +88,6 @@ export function Home() {
       });
       const savedPost = await res.json();
       setPosts([savedPost, ...posts]);
-      // Reset dei campi
       setDescription('');
       setImageUrl('');
       setSelectedTrack(null);
@@ -90,14 +96,14 @@ export function Home() {
     }
   };
 
-  // Handler per mettere like: invia una richiesta POST a /api/posts/:id/like
+  // Handler per like
   const handleLike = async (postId: string) => {
-    const userId = 'currentUser'; // sostituisci con l'ID dell'utente autenticato
+    if (!user) return;
     try {
       const res = await fetch(`${API_URL}/api/posts/${postId}/like`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId })
+        body: JSON.stringify({ userId: user._id, username: user.username })
       });
       const updatedPost = await res.json();
       setPosts(posts.map(post => post._id === postId ? updatedPost : post));
@@ -106,14 +112,14 @@ export function Home() {
     }
   };
 
-  // Handler per aggiungere un commento
+  // Handler per commento
   const handleComment = async (postId: string, comment: string) => {
-    const userId = 'currentUser';
+    if (!user) return;
     try {
       const res = await fetch(`${API_URL}/api/posts/${postId}/comment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, text: comment })
+        body: JSON.stringify({ userId: user._id, text: comment, username: user.username })
       });
       const updatedPost = await res.json();
       setPosts(posts.map(post => post._id === postId ? updatedPost : post));
@@ -122,9 +128,41 @@ export function Home() {
     }
   };
 
-  // Handler per la share: simulazione (da integrare con logica chat)
+  // Handler per share: apre il modal
   const handleShare = (postId: string) => {
-    alert(`Share del post ${postId}: qui puoi implementare l'invio in chat`);
+    setSharePostId(postId);
+    setShareModalOpen(true);
+  };
+
+  // Funzione per inviare il post condiviso con riepilogo
+  const sendSharedPost = async (friendId: string, extraMessage: string) => {
+    if (!user) return;
+    try {
+      const sharedPost = posts.find(p => p._id === sharePostId);
+      let postSummary = '';
+      if (sharedPost) {
+        postSummary = `Post di ${sharedPost.user.username}\n${sharedPost.description}\n`;
+        if (sharedPost.songTitle) {
+          postSummary += `Canzone: ${sharedPost.songTitle} di ${sharedPost.artist}\n`;
+        }
+      }
+      const content = extraMessage ? `${postSummary}\nMessaggio: ${extraMessage}` : postSummary;
+      
+      await fetch(`${API_URL}/api/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sender: user._id,
+          recipients: [friendId],
+          content
+        })
+      });
+      setShareModalOpen(false);
+      setSharePostId('');
+      alert("Post condiviso in chat!");
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
@@ -138,7 +176,6 @@ export function Home() {
       <div className="mb-6 border p-4 rounded">
         <h2 className="text-xl font-semibold mb-2">Crea un nuovo post</h2>
         
-        {/* Campo per il testo */}
         <div className="mb-2">
           <textarea
             placeholder="Scrivi qualcosa..."
@@ -148,7 +185,6 @@ export function Home() {
           />
         </div>
 
-        {/* Campo per l'URL della foto */}
         <div className="mb-2">
           <input
             type="text"
@@ -159,7 +195,6 @@ export function Home() {
           />
         </div>
 
-        {/* Ricerca canzone tramite Spotify */}
         <div className="mb-2">
           <input
             type="text"
@@ -187,9 +222,7 @@ export function Home() {
                 />
                 <div>
                   <div className="font-bold">{track.name}</div>
-                  <div className="text-sm text-gray-600">
-                    {track.artists.map((a: any) => a.name).join(', ')}
-                  </div>
+                  <div className="text-sm text-gray-600">{track.artists.map((a: any) => a.name).join(', ')}</div>
                 </div>
               </div>
             ))}
@@ -206,9 +239,7 @@ export function Home() {
               />
               <div>
                 <div className="font-bold">{selectedTrack.name}</div>
-                <div className="text-sm text-gray-600">
-                  {selectedTrack.artists.map((a: any) => a.name).join(', ')}
-                </div>
+                <div className="text-sm text-gray-600">{selectedTrack.artists.map((a: any) => a.name).join(', ')}</div>
               </div>
             </div>
           </div>
@@ -219,14 +250,12 @@ export function Home() {
         </button>
       </div>
 
-      {/* Bottone per aggiornare il feed */}
       <div className="mb-4">
         <button onClick={fetchPosts} className="px-4 py-2 bg-purple-500 text-white rounded">
           Aggiorna Feed
         </button>
       </div>
 
-      {/* Feed dei post */}
       <div className="space-y-4">
         {posts.map((post) => (
           <MusicPost
@@ -238,6 +267,14 @@ export function Home() {
           />
         ))}
       </div>
+
+      <ShareModal
+        visible={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        onShare={sendSharedPost}
+        userId={user ? user._id : ''}
+        apiUrl={API_URL}
+      />
     </div>
   );
 }

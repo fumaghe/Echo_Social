@@ -2,8 +2,9 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
+const Notification = require('../models/Notification');
 
-// Schema dei Post (supporta post solo testo, solo foto, testo+foto, testo+canzone, ecc.)
+// Schema dei Post
 const PostSchema = new mongoose.Schema({
   user: {
     _id: { type: String, required: true },
@@ -11,15 +12,16 @@ const PostSchema = new mongoose.Schema({
     avatarUrl: { type: String, default: '' }
   },
   description: { type: String, default: '' },
-  imageUrl: { type: String, default: '' },      // URL della foto, se presente
-  songTitle: { type: String, default: '' },       // Titolo della canzone, se presente
+  imageUrl: { type: String, default: '' },
+  songTitle: { type: String, default: '' },
   artist: { type: String, default: '' },
-  coverUrl: { type: String, default: '' },        // URL della copertina della canzone
+  coverUrl: { type: String, default: '' },
   likesCount: { type: Number, default: 0 },
-  likes: [{ type: String }],                      // Array di ID degli utenti che hanno messo like
+  likes: [{ type: String }],
   commentsCount: { type: Number, default: 0 },
   comments: [{
     user: { type: String, required: true },
+    username: { type: String, required: true }, // Nuovo campo per il nome del commentatore
     text: { type: String, required: true },
     createdAt: { type: Date, default: Date.now }
   }],
@@ -46,14 +48,7 @@ router.post('/', async (req, res) => {
     if (!user || !user._id || !user.username) {
       return res.status(400).json({ error: 'Informazioni utente mancanti' });
     }
-    const newPost = new Post({
-      user,
-      description,
-      imageUrl,
-      songTitle,
-      artist,
-      coverUrl
-    });
+    const newPost = new Post({ user, description, imageUrl, songTitle, artist, coverUrl });
     const savedPost = await newPost.save();
     res.json(savedPost);
   } catch (err) {
@@ -62,10 +57,10 @@ router.post('/', async (req, res) => {
   }
 });
 
-// POST: Toggle like per un post
+// POST: Toggle like per un post e genera notifica
 router.post('/:id/like', async (req, res) => {
   try {
-    const { userId } = req.body;
+    const { userId, username } = req.body;
     if (!userId) return res.status(400).json({ error: 'userId richiesto' });
 
     const post = await Post.findById(req.params.id);
@@ -74,6 +69,14 @@ router.post('/:id/like', async (req, res) => {
     const likeIndex = post.likes.indexOf(userId);
     if (likeIndex === -1) {
       post.likes.push(userId);
+      // Crea notifica se il liker non è l'autore
+      if (userId !== post.user._id) {
+        await Notification.create({
+          user: post.user._id,
+          message: `${username} ha messo like al tuo post.`,
+          type: 'info'
+        });
+      }
     } else {
       post.likes.splice(likeIndex, 1);
     }
@@ -86,17 +89,25 @@ router.post('/:id/like', async (req, res) => {
   }
 });
 
-// POST: Aggiungi un commento a un post
+// POST: Aggiungi un commento a un post e genera notifica
 router.post('/:id/comment', async (req, res) => {
   try {
-    const { userId, text } = req.body;
+    const { userId, text, username } = req.body;
     if (!userId || !text) return res.status(400).json({ error: 'userId e testo sono richiesti' });
 
     const post = await Post.findById(req.params.id);
     if (!post) return res.status(404).json({ error: 'Post non trovato' });
 
-    post.comments.push({ user: userId, text });
+    // Salva anche il nome del commentatore
+    post.comments.push({ user: userId, username, text });
     post.commentsCount = post.comments.length;
+    if (userId !== post.user._id) {
+      await Notification.create({
+        user: post.user._id,
+        message: `${username} ha commentato: "${text}"`,
+        type: 'info'
+      });
+    }
     const updatedPost = await post.save();
     res.json(updatedPost);
   } catch (err) {
@@ -105,6 +116,4 @@ router.post('/:id/comment', async (req, res) => {
   }
 });
 
-// Per la "share" si potrà integrare la logica di invio tramite chat (già presente in messages.js)
-// Per ora il pulsante share può reindirizzare alla chat o mostrare un messaggio
 module.exports = router;
