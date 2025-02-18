@@ -3,6 +3,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
+require('dotenv').config();
 
 const app = express();
 
@@ -24,6 +25,9 @@ const conversationRoutes = require('./routes/conversations');
 const postRoutes = require('./routes/posts');
 const notificationRoutes = require('./routes/notifications');
 
+// Rotta per Spotify (nuova!)
+const spotifyRoutes = require('./routes/spotify');
+
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/friends', friendRoutes);
@@ -31,14 +35,12 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/spotify', spotifyRoutes);
 
 // ======================================================
 // Connessione a MongoDB
 // ======================================================
-// Usa la variabile d'ambiente MONGODB_URI se esiste;
-// altrimenti, ne hai una hardcoded (non sicura in produzione).
 const uri = process.env.MONGODB_URI || 'mongodb+srv://fumaghe:1909,Andre@echo.wom6a.mongodb.net/echo?retryWrites=true&w=majority';
-
 mongoose.connect(uri)
   .then(() => {
     console.log('Connesso a MongoDB');
@@ -51,7 +53,6 @@ mongoose.connect(uri)
 app.use(express.static(path.join(__dirname, '../client/dist')));
 
 // Se usi React Router, cattura tutte le rotte non gestite dalle API
-// e rimanda a index.html, così la tua SPA funziona con path interni.
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/dist', 'index.html'));
 });

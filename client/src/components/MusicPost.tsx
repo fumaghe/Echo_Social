@@ -1,3 +1,4 @@
+// client/src/components/MusicPost.tsx
 import React from 'react';
 import { Heart, MessageCircle, Share2, MoreHorizontal } from 'lucide-react';
 
@@ -16,13 +17,22 @@ export interface Post {
   likesCount: number;
   commentsCount: number;
   createdAt: string;
+  likes?: string[];
+  comments?: {
+    user: string;
+    text: string;
+    createdAt: string;
+  }[];
 }
 
 interface MusicPostProps {
   post: Post;
+  onLike: (postId: string) => void;
+  onComment: (postId: string, comment: string) => void;
+  onShare: (postId: string) => void;
 }
 
-export function MusicPost({ post }: MusicPostProps) {
+export function MusicPost({ post, onLike, onComment, onShare }: MusicPostProps) {
   return (
     <article className="bg-white rounded-lg shadow-sm p-4 mb-4">
       <div className="flex items-start justify-between">
@@ -57,15 +67,18 @@ export function MusicPost({ post }: MusicPostProps) {
       </div>
 
       <div className="mt-4 flex items-center gap-6 text-gray-500">
-        <button className="flex items-center gap-2 hover:text-red-500">
+        <button onClick={() => onLike(post._id)} className="flex items-center gap-2 hover:text-red-500">
           <Heart className="w-5 h-5" />
           <span>{post.likesCount}</span>
         </button>
-        <button className="flex items-center gap-2 hover:text-blue-500">
+        <button onClick={() => {
+            const comment = prompt("Inserisci un commento:");
+            if(comment) onComment(post._id, comment);
+        }} className="flex items-center gap-2 hover:text-blue-500">
           <MessageCircle className="w-5 h-5" />
           <span>{post.commentsCount}</span>
         </button>
-        <button className="flex items-center gap-2 hover:text-green-500">
+        <button onClick={() => onShare(post._id)} className="flex items-center gap-2 hover:text-green-500">
           <Share2 className="w-5 h-5" />
         </button>
       </div>
