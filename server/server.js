@@ -35,14 +35,8 @@ app.use('/api/notifications', notificationRoutes);
 // ======================================================
 // Connessione a MongoDB
 // ======================================================
-//
-// 1) Consigliato: usare una variabile d'ambiente su Render (MONGODB_URI)
-//
-//    const uri = process.env.MONGODB_URI;
-//
-// 2) Se vuoi “hardcodare” (non consigliato per sicurezza):
-//    const uri = 'mongodb+srv://user:password@cluster.../echo?retryWrites=true&w=majority';
-//
+// Usa la variabile d'ambiente MONGODB_URI se esiste;
+// altrimenti, ne hai una hardcoded (non sicura in produzione).
 const uri = process.env.MONGODB_URI || 'mongodb+srv://fumaghe:1909,Andre@echo.wom6a.mongodb.net/echo?retryWrites=true&w=majority';
 
 mongoose.connect(uri)
@@ -56,8 +50,8 @@ mongoose.connect(uri)
 // ======================================================
 app.use(express.static(path.join(__dirname, '../client/dist')));
 
-// Se usi React Router, cattura le rotte e rimanda a index.html
-// (Solo se NON coincidono con le rotte /api/ sopra)
+// Se usi React Router, cattura tutte le rotte non gestite dalle API
+// e rimanda a index.html, così la tua SPA funziona con path interni.
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/dist', 'index.html'));
 });
