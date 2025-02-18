@@ -21,7 +21,6 @@ export function ShareModal({ visible, onClose, onShare, userId, apiUrl }: ShareM
   const [friends, setFriends] = useState<Friend[]>([]);
   const [extraMessage, setExtraMessage] = useState('');
 
-  // Carica la lista degli amici ogni 10 secondi
   const loadFriends = async () => {
     try {
       const res = await axios.get(`${apiUrl}/api/friends/${userId}`);

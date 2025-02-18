@@ -28,7 +28,6 @@ interface Message {
   read: boolean;
 }
 
-// Leggi la base URL da env
 const API_URL = import.meta.env.VITE_API_URL;
 
 export function Chat() {
@@ -66,6 +65,10 @@ export function Chat() {
   const [searchResults, setSearchResults] = useState<Message[]>([]);
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
 
+  // ================================================
+  // FUNZIONI DI BACKEND
+  // ================================================
+
   // Carica conversazioni
   const loadConversations = async () => {
     try {
@@ -85,18 +88,7 @@ export function Chat() {
     }
   };
 
-  // Polling per la lista conversazioni (ogni 1 secondo)
-  useEffect(() => {
-    if (viewMode === 'list') {
-      loadConversations();
-      listPollingRef.current = window.setInterval(loadConversations, 1000);
-      return () => {
-        if (listPollingRef.current !== null) clearInterval(listPollingRef.current);
-      };
-    }
-  }, [viewMode, user]);
-
-  // Carica i messaggi della chat attiva
+  // Carica i messaggi
   const loadMessages = async () => {
     try {
       const res = await axios.get(`${API_URL}/api/messages?user1=${user._id}&user2=${selectedPartnerId}`);
@@ -106,23 +98,7 @@ export function Chat() {
     }
   };
 
-  // Polling per la chat (ogni 1 secondo)
-  useEffect(() => {
-    if (viewMode === 'chat' && selectedPartnerId) {
-      loadMessages();
-      pollingIntervalRef.current = window.setInterval(loadMessages, 1000);
-      return () => {
-        if (pollingIntervalRef.current !== null) clearInterval(pollingIntervalRef.current);
-      };
-    }
-  }, [viewMode, selectedPartnerId, user]);
-
-  const handleSelectConversation = (partnerId: string) => {
-    setSelectedPartnerId(partnerId);
-    setViewMode('chat');
-  };
-
-  // Invio del messaggio
+  // Invia un nuovo messaggio
   const handleSendMessage = async () => {
     if (!selectedPartnerId || !messageText.trim()) return;
     try {
@@ -139,23 +115,60 @@ export function Chat() {
     }
   };
 
-  // Invia con Enter (senza shift)
-  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
+  // Elimina intera conversazione
+  const handleDeleteConversation = async () => {
+    if (!selectedPartnerId) return;
+    try {
+      await axios.delete(`${API_URL}/api/messages?user1=${user._id}&user2=${selectedPartnerId}`);
+      setChatMenuOpen(false);
+      setViewMode('list');
+      setSelectedPartnerId('');
+      setChatMessages([]);
+      setSelectedPartnerData(null);
+      loadConversations();
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  const handleBackToList = () => {
-    setViewMode('list');
-    setSelectedPartnerId('');
-    setChatMessages([]);
-    setSelectedPartnerData(null);
-    if (pollingIntervalRef.current !== null) clearInterval(pollingIntervalRef.current);
+  // Elimina singolo messaggio
+  const handleDeleteMessage = async (msgId: string) => {
+    try {
+      await axios.delete(`${API_URL}/api/messages/${msgId}`);
+      loadMessages();
+      loadConversations();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  // Carica i dati del partner
+  // ================================================
+  // USE EFFECTS
+  // ================================================
+
+  // Polling lista conversazioni
+  useEffect(() => {
+    if (viewMode === 'list') {
+      loadConversations();
+      listPollingRef.current = window.setInterval(loadConversations, 1000);
+      return () => {
+        if (listPollingRef.current !== null) clearInterval(listPollingRef.current);
+      };
+    }
+  }, [viewMode, user]);
+
+  // Polling chat
+  useEffect(() => {
+    if (viewMode === 'chat' && selectedPartnerId) {
+      loadMessages();
+      pollingIntervalRef.current = window.setInterval(loadMessages, 1000);
+      return () => {
+        if (pollingIntervalRef.current !== null) clearInterval(pollingIntervalRef.current);
+      };
+    }
+  }, [viewMode, selectedPartnerId, user]);
+
+  // Carica dati partner
   useEffect(() => {
     if (selectedPartnerId) {
       if (partnersData[selectedPartnerId]) {
@@ -169,18 +182,31 @@ export function Chat() {
     }
   }, [selectedPartnerId, partnersData]);
 
-  const formatTime = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  // ================================================
+  // FUNZIONI DI SUPPORTO
+  // ================================================
+
+  // Seleziona conversazione
+  const handleSelectConversation = (partnerId: string) => {
+    setSelectedPartnerId(partnerId);
+    setViewMode('chat');
   };
 
-  // Check marks stile WhatsApp
-  const renderCheckMarks = (msg: Message) => {
-    if (msg.sender !== user._id) return null;
-    if (!msg.delivered) return <span className="text-gray-500 text-xs">✓</span>;
-    if (msg.delivered && !msg.read) return <span className="text-gray-500 text-xs">✓✓</span>;
-    if (msg.read) return <span className="text-blue-500 text-xs">✓✓</span>;
-    return null;
+  // Torna alla lista chat
+  const handleBackToList = () => {
+    setViewMode('list');
+    setSelectedPartnerId('');
+    setChatMessages([]);
+    setSelectedPartnerData(null);
+    if (pollingIntervalRef.current !== null) clearInterval(pollingIntervalRef.current);
+  };
+
+  // Invia con Enter (senza shift)
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
   };
 
   // Ricerca utenti per nuova chat
@@ -229,36 +255,88 @@ export function Chat() {
     }
   };
 
-  // Menu chat per eliminare l'intera conversazione
+  // Menu chat
   const toggleChatMenu = () => {
     setChatMenuOpen(!chatMenuOpen);
   };
 
-  const handleDeleteConversation = async () => {
-    if (!selectedPartnerId) return;
-    try {
-      await axios.delete(`${API_URL}/api/messages?user1=${user._id}&user2=${selectedPartnerId}`);
-      setChatMenuOpen(false);
-      setViewMode('list');
-      setSelectedPartnerId('');
-      setChatMessages([]);
-      setSelectedPartnerData(null);
-      loadConversations();
-    } catch (err) {
-      console.error(err);
-    }
+  // Format time
+  const formatTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  // Eliminazione di un singolo messaggio
-  const handleDeleteMessage = async (msgId: string) => {
-    try {
-      await axios.delete(`${API_URL}/api/messages/${msgId}`);
-      loadMessages();
-      loadConversations();
-    } catch (err) {
-      console.error(err);
-    }
+  // Check marks stile WhatsApp
+  const renderCheckMarks = (msg: Message) => {
+    if (msg.sender !== user._id) return null;
+    if (!msg.delivered) return <span className="text-gray-500 text-xs">✓</span>;
+    if (msg.delivered && !msg.read) return <span className="text-gray-500 text-xs">✓✓</span>;
+    if (msg.read) return <span className="text-blue-500 text-xs">✓✓</span>;
+    return null;
   };
+
+  // ================================================
+  // RENDER MESSAGGI CON CARD SPOTIFY
+  // ================================================
+
+  // Funzione che cerca di estrarre trackUrl e coverUrl dal messaggio
+  // Esempio di testo:
+  // "Post di admin\nCiao amore\nCanzone: DIMMI CHE NON È UN ADDIO di Holden\nAscolta qui: https://open.spotify.com/track/...\nCover: https://..."
+  function parseSharedPost(content: string) {
+    const lines = content.split('\n');
+    let trackUrl = '';
+    let coverUrl = '';
+    const textLines: string[] = [];
+
+    for (const line of lines) {
+      if (line.startsWith('Ascolta qui: ')) {
+        trackUrl = line.replace('Ascolta qui: ', '').trim();
+      } else if (line.startsWith('Cover: ')) {
+        coverUrl = line.replace('Cover: ', '').trim();
+      } else {
+        textLines.push(line);
+      }
+    }
+    return {
+      trackUrl,
+      coverUrl,
+      text: textLines.join('\n'),
+    };
+  }
+
+  // Funzione per renderizzare il contenuto del messaggio (card vs normale)
+  function renderMessageContent(msg: Message) {
+    // Se il messaggio contiene "Ascolta qui:" => interpretazione "post condiviso"
+    if (msg.content.includes('Ascolta qui:')) {
+      const { trackUrl, coverUrl, text } = parseSharedPost(msg.content);
+
+      // Ritorna un blocco HTML con il testo e (se presente) l'immagine cliccabile
+      return (
+        <div>
+          {/* Ogni riga di testo la stampiamo */}
+          {text.split('\n').map((line, i) => (
+            <div key={i}>{line}</div>
+          ))}
+
+          {/* Se c'è la cover, la mostriamo come link a trackUrl */}
+          {coverUrl && (
+            <div className="mt-2">
+              <a href={trackUrl} target="_blank" rel="noopener noreferrer">
+                <img src={coverUrl} alt="cover" className="w-32 h-auto rounded" />
+              </a>
+            </div>
+          )}
+        </div>
+      );
+    } else {
+      // Messaggio normale
+      return msg.content;
+    }
+  }
+
+  // ================================================
+  // RENDER
+  // ================================================
 
   return (
     <div className="bg-gray-50 h-screen w-full flex flex-col pt-16 pb-16 md:ml-16 overflow-hidden">
@@ -309,6 +387,7 @@ export function Chat() {
       <div className="flex-1 overflow-y-auto relative">
         {viewMode === 'list' ? (
           <div>
+            {/* Ricerca utente per iniziare chat */}
             <div className="p-4 border-b bg-white">
               <div className="flex gap-2 mb-2">
                 <input
@@ -333,6 +412,7 @@ export function Chat() {
                 </div>
               ))}
             </div>
+            {/* Lista conversazioni */}
             {conversations.map(conv => {
               const partnerId = conv.partnerId;
               const partner = partnersData[partnerId];
@@ -430,7 +510,7 @@ export function Chat() {
                               : 'bg-white text-gray-800 rounded-bl-none'
                         }`}
                       >
-                        {msg.content}
+                        {renderMessageContent(msg)}
                       </div>
                       <div className="text-xs text-gray-500 flex items-center gap-1 self-end mt-1">
                         <span>{formatTime(msg.createdAt)}</span>

@@ -14,7 +14,7 @@ export function Home() {
   const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   
-  // Stati per la ricerca di canzoni tramite Spotify
+  // Stati per la ricerca di brani via Spotify
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [selectedTrack, setSelectedTrack] = useState<any>(null);
@@ -23,7 +23,7 @@ export function Home() {
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [sharePostId, setSharePostId] = useState<string>('');
 
-  // Recupera i post dal backend
+  // Recupera i post
   const fetchPosts = async () => {
     try {
       const res = await fetch(`${API_URL}/api/posts`);
@@ -38,13 +38,17 @@ export function Home() {
     fetchPosts();
   }, []);
 
-  // Funzione per la ricerca di brani tramite Spotify
+  // Ricerca Spotify
   const handleSearch = async () => {
-    if (searchQuery.trim() === '') return;
+    if (!searchQuery.trim()) return;
     try {
       const res = await fetch(`${API_URL}/api/spotify/search?query=${encodeURIComponent(searchQuery)}`);
       const data = await res.json();
-      setSearchResults(data.tracks.items);
+      if (data && data.tracks && data.tracks.items) {
+        setSearchResults(data.tracks.items);
+      } else {
+        setSearchResults([]);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -56,7 +60,7 @@ export function Home() {
     setSearchQuery('');
   };
 
-  // Funzione per creare un nuovo post
+  // Creazione del post (salviamo trackUrl)
   const handleCreatePost = async () => {
     if (!user) {
       alert("Devi essere autenticato!");
@@ -77,7 +81,8 @@ export function Home() {
       imageUrl,
       songTitle: selectedTrack ? selectedTrack.name : '',
       artist: selectedTrack ? selectedTrack.artists[0].name : '',
-      coverUrl: selectedTrack ? selectedTrack.album.images[0]?.url : ''
+      coverUrl: selectedTrack ? selectedTrack.album.images[0]?.url : '',
+      trackUrl: selectedTrack ? selectedTrack.external_urls.spotify : ''
     };
 
     try {
@@ -96,7 +101,7 @@ export function Home() {
     }
   };
 
-  // Handler per like
+  // Handler per like e commento
   const handleLike = async (postId: string) => {
     if (!user) return;
     try {
@@ -112,7 +117,6 @@ export function Home() {
     }
   };
 
-  // Handler per commento
   const handleComment = async (postId: string, comment: string) => {
     if (!user) return;
     try {
@@ -128,13 +132,13 @@ export function Home() {
     }
   };
 
-  // Handler per share: apre il modal
+  // Share: apre il modal
   const handleShare = (postId: string) => {
     setSharePostId(postId);
     setShareModalOpen(true);
   };
 
-  // Funzione per inviare il post condiviso con riepilogo
+  // Invia il post in chat (con link Spotify e cover)
   const sendSharedPost = async (friendId: string, extraMessage: string) => {
     if (!user) return;
     try {
@@ -144,6 +148,8 @@ export function Home() {
         postSummary = `Post di ${sharedPost.user.username}\n${sharedPost.description}\n`;
         if (sharedPost.songTitle) {
           postSummary += `Canzone: ${sharedPost.songTitle} di ${sharedPost.artist}\n`;
+          postSummary += `Ascolta qui: ${sharedPost.trackUrl}\n`; 
+          postSummary += `Cover: ${sharedPost.coverUrl}\n`; // se vuoi passare la cover
         }
       }
       const content = extraMessage ? `${postSummary}\nMessaggio: ${extraMessage}` : postSummary;
@@ -172,7 +178,6 @@ export function Home() {
         <p className="text-gray-600">Discover and share music with friends</p>
       </header>
 
-      {/* Sezione per creare un nuovo post */}
       <div className="mb-6 border p-4 rounded">
         <h2 className="text-xl font-semibold mb-2">Crea un nuovo post</h2>
         
@@ -222,7 +227,9 @@ export function Home() {
                 />
                 <div>
                   <div className="font-bold">{track.name}</div>
-                  <div className="text-sm text-gray-600">{track.artists.map((a: any) => a.name).join(', ')}</div>
+                  <div className="text-sm text-gray-600">
+                    {track.artists.map((a: any) => a.name).join(', ')}
+                  </div>
                 </div>
               </div>
             ))}
@@ -239,7 +246,9 @@ export function Home() {
               />
               <div>
                 <div className="font-bold">{selectedTrack.name}</div>
-                <div className="text-sm text-gray-600">{selectedTrack.artists.map((a: any) => a.name).join(', ')}</div>
+                <div className="text-sm text-gray-600">
+                  {selectedTrack.artists.map((a: any) => a.name).join(', ')}
+                </div>
               </div>
             </div>
           </div>

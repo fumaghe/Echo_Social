@@ -12,16 +12,17 @@ const PostSchema = new mongoose.Schema({
     avatarUrl: { type: String, default: '' }
   },
   description: { type: String, default: '' },
-  imageUrl: { type: String, default: '' },
+  imageUrl: { type: String, default: '' },   // Foto opzionale del post
   songTitle: { type: String, default: '' },
   artist: { type: String, default: '' },
-  coverUrl: { type: String, default: '' },
+  coverUrl: { type: String, default: '' },   // Copertina Spotify
+  trackUrl: { type: String, default: '' },   // Link a Spotify
   likesCount: { type: Number, default: 0 },
   likes: [{ type: String }],
   commentsCount: { type: Number, default: 0 },
   comments: [{
     user: { type: String, required: true },
-    username: { type: String, required: true }, // Nuovo campo per il nome del commentatore
+    username: { type: String, required: true, default: '' },
     text: { type: String, required: true },
     createdAt: { type: Date, default: Date.now }
   }],
@@ -30,7 +31,7 @@ const PostSchema = new mongoose.Schema({
 
 const Post = mongoose.model('Post', PostSchema);
 
-// GET: Recupera tutti i post, ordinati dal più recente
+// GET: Recupera tutti i post
 router.get('/', async (req, res) => {
   try {
     const posts = await Post.find().sort({ createdAt: -1 });
@@ -44,11 +45,11 @@ router.get('/', async (req, res) => {
 // POST: Crea un nuovo post
 router.post('/', async (req, res) => {
   try {
-    const { user, description, imageUrl, songTitle, artist, coverUrl } = req.body;
+    const { user, description, imageUrl, songTitle, artist, coverUrl, trackUrl } = req.body;
     if (!user || !user._id || !user.username) {
       return res.status(400).json({ error: 'Informazioni utente mancanti' });
     }
-    const newPost = new Post({ user, description, imageUrl, songTitle, artist, coverUrl });
+    const newPost = new Post({ user, description, imageUrl, songTitle, artist, coverUrl, trackUrl });
     const savedPost = await newPost.save();
     res.json(savedPost);
   } catch (err) {
@@ -57,7 +58,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// POST: Toggle like per un post e genera notifica
+// POST: Toggle like
 router.post('/:id/like', async (req, res) => {
   try {
     const { userId, username } = req.body;
@@ -69,7 +70,7 @@ router.post('/:id/like', async (req, res) => {
     const likeIndex = post.likes.indexOf(userId);
     if (likeIndex === -1) {
       post.likes.push(userId);
-      // Crea notifica se il liker non è l'autore
+      // Notifica se il liker non è l'autore
       if (userId !== post.user._id) {
         await Notification.create({
           user: post.user._id,
@@ -89,7 +90,7 @@ router.post('/:id/like', async (req, res) => {
   }
 });
 
-// POST: Aggiungi un commento a un post e genera notifica
+// POST: Aggiungi un commento
 router.post('/:id/comment', async (req, res) => {
   try {
     const { userId, text, username } = req.body;
@@ -98,9 +99,9 @@ router.post('/:id/comment', async (req, res) => {
     const post = await Post.findById(req.params.id);
     if (!post) return res.status(404).json({ error: 'Post non trovato' });
 
-    // Salva anche il nome del commentatore
     post.comments.push({ user: userId, username, text });
     post.commentsCount = post.comments.length;
+    // Notifica se chi commenta non è l'autore
     if (userId !== post.user._id) {
       await Notification.create({
         user: post.user._id,
