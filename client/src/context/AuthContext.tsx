@@ -1,6 +1,7 @@
 // client/src/context/AuthContext.tsx
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import axios from 'axios';
+import { useLocation } from 'react-router-dom';
 
 export interface User {
   _id: string;
@@ -21,7 +22,7 @@ interface AuthContextProps {
   register: (username: string, password: string, fullName: string) => Promise<boolean>;
   logout: () => void;
   updateProfile: (data: Partial<User>) => Promise<boolean>;
-  loginWithSpotify: () => void; // Aggiunto qui
+  loginWithSpotify: () => void;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -29,13 +30,30 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const location = useLocation();
 
   useEffect(() => {
     const storedUser = localStorage.getItem('currentUser');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
+    } else {
+      const params = new URLSearchParams(location.search);
+      const spotifyLogin = params.get('spotifyLogin');
+      const userId = params.get('userId');
+      console.log('Params from URL:', { spotifyLogin, userId });
+      if (spotifyLogin === 'success' && userId) {
+        axios.get(`${API_URL}/api/auth/me`, { params: { userId } })
+          .then(res => {
+            console.log('User recuperato da /me:', res.data.user);
+            setUser(res.data.user);
+            localStorage.setItem('currentUser', JSON.stringify(res.data.user));
+            // Rimuovi i parametri dalla URL
+            window.history.replaceState({}, document.title, location.pathname);
+          })
+          .catch(err => console.error('Errore recuperando l\'utente da Spotify:', err));
+      }
     }
-  }, []);
+  }, [location]);
 
   const login = async (username: string, password: string) => {
     try {
@@ -79,7 +97,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Funzione per effettuare il login tramite Spotify
   const loginWithSpotify = () => {
     window.location.href = `${API_URL}/api/auth/spotify`;
   };

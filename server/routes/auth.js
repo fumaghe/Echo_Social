@@ -35,35 +35,35 @@ router.post('/login', async (req, res) => {
 });
 
 /**
- * 1) GET /api/auth/spotify
- *    Reindirizza l'utente alla pagina di autorizzazione di Spotify
+ * GET /api/auth/spotify
+ * Reindirizza l'utente alla pagina di autorizzazione di Spotify.
  */
 router.get('/spotify', (req, res) => {
   const scopes = [
     'user-read-email',
-    'user-read-private',
-    // Se vuoi riprodurre brani, aggiungi scope come "streaming", "user-modify-playback-state", ecc.
+    'user-read-private'
+    // Aggiungi altri scope se necessario
   ];
   const params = new URLSearchParams({
     client_id: process.env.SPOTIFY_CLIENT_ID,
     response_type: 'code',
-    redirect_uri: process.env.SPOTIFY_REDIRECT_URI,  // es: "http://localhost:5000/api/auth/spotify/callback"
-    scope: scopes.join(' '),
+    redirect_uri: process.env.SPOTIFY_REDIRECT_URI, // Deve corrispondere a quello registrato su Spotify
+    scope: scopes.join(' ')
   });
-  // reindirizza a https://accounts.spotify.com/authorize?client_id=...&...
   res.redirect(`https://accounts.spotify.com/authorize?${params.toString()}`);
 });
 
 /**
- * 2) GET /api/auth/spotify/callback
- *    Riceve 'code' da Spotify, scambia il code per un access token e crea/aggiorna l'utente
+ * GET /api/auth/spotify/callback
+ * Riceve il code da Spotify, scambia il code per i token e crea/aggiorna l'utente.
+ * Al termine, reindirizza al frontend includendo l'ID dell'utente nella query string.
  */
 router.get('/spotify/callback', async (req, res) => {
   const { code } = req.query;
   if (!code) return res.status(400).json({ error: 'Manca il code di Spotify' });
   
   try {
-    // Scambia 'code' per token
+    // Scambia il code per i token
     const tokenRes = await axios.post(
       'https://accounts.spotify.com/api/token',
       new URLSearchParams({
@@ -75,25 +75,23 @@ router.get('/spotify/callback', async (req, res) => {
       }).toString(),
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
+    const { access_token, refresh_token } = tokenRes.data;
 
-    const { access_token, refresh_token, expires_in } = tokenRes.data;
-    // Ora recupera i dati dell'utente da Spotify
+    // Recupera i dati dell'utente da Spotify
     const userProfileRes = await axios.get('https://api.spotify.com/v1/me', {
       headers: { Authorization: `Bearer ${access_token}` }
     });
-
     const spotifyId = userProfileRes.data.id;
     const spotifyEmail = userProfileRes.data.email || 'unknown@spotify.com';
     const displayName = userProfileRes.data.display_name || 'Senza Nome';
 
-    // Se l'utente esiste già (ad es. via email o via un campo "spotifyId"), aggiorna
+    // Cerca l'utente tramite spotifyId; se non esiste, crealo
     let user = await User.findOne({ spotifyId });
     if (!user) {
-      // Se non esiste, potresti controllare se esiste con quell'email, altrimenti creare un nuovo utente
       user = new User({
-        username: spotifyEmail,  // o un naming a tua scelta
+        username: spotifyEmail, // o scegli un naming diverso
         fullName: displayName,
-        password: 'spotify-login',  // un placeholder
+        password: 'spotify-login', // placeholder; in produzione gestisci diversamente
         spotifyId,
         spotifyAccessToken: access_token,
         spotifyRefreshToken: refresh_token
@@ -106,13 +104,27 @@ router.get('/spotify/callback', async (req, res) => {
       await user.save();
     }
 
-    // A questo punto l'utente è loggato con Spotify
-    // reindirizza al frontend (ad es. "http://localhost:5173?spotify=ok")
-    // Oppure restituisci un token JWT, dipende dalla tua logica
-    res.redirect(`${process.env.FRONTEND_URL}/?spotifyLogin=success`);
+    // Redirect al frontend includendo l'ID dell'utente
+    res.redirect(`${process.env.FRONTEND_URL}/?spotifyLogin=success&userId=${user._id}`);
   } catch (err) {
     console.error('Errore callback Spotify:', err);
     res.redirect(`${process.env.FRONTEND_URL}/?spotifyLogin=error`);
+  }
+});
+
+/**
+ * GET /api/auth/me
+ * Ritorna i dati dell'utente autenticato in base a userId passato come query parameter.
+ */
+router.get('/me', async (req, res) => {
+  const userId = req.query.userId;
+  if (!userId) return res.status(401).json({ message: 'Non autenticato' });
+  try {
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'Utente non trovato' });
+    res.json({ user });
+  } catch (err) {
+    res.status(500).json({ message: 'Errore del server' });
   }
 });
 

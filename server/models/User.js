@@ -11,13 +11,13 @@ const UserSchema = new mongoose.Schema({
   friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   friendRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   createdAt: { type: Date, default: Date.now },
-  // Campi Spotify
+  // Campi per Spotify
   spotifyId: { type: String, default: '' },
   spotifyAccessToken: { type: String, default: '' },
   spotifyRefreshToken: { type: String, default: '' }
 });
 
-// Hash password
+// Hash della password
 UserSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
   try {

@@ -13,7 +13,6 @@ export function Login() {
   const navigate = useNavigate();
   const { user, login, register, loginWithSpotify } = useAuth();
 
-  // Se l'utente è già autenticato, reindirizza automaticamente alla home
   useEffect(() => {
     if (user) {
       navigate('/');
@@ -30,7 +29,6 @@ export function Login() {
       success = await login(username, password);
       if (!success) setError('Credenziali non valide');
     }
-    // Se il login/registrazione ha successo, navigate verrà chiamato dall'useEffect
   };
 
   return (
@@ -106,7 +104,6 @@ export function Login() {
           </button>
         </p>
 
-        {/* Pulsante per login con Spotify */}
         {!isRegister && (
           <div className="mt-6 text-center">
             <button
