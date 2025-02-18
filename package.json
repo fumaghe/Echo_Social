@@ -11,7 +11,7 @@
       "dev:client": "cd client && npm run dev",
       "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
   
-      "build": "cd client && npm install && chmod +x node_modules/.bin/vite && npm run build && cd ../server && npm install",  
+      "build": "cd client && npm install && chmod +x node_modules/.bin/vite && npm run build && cd ../server && rm -rf node_modules && npm install",
       "start": "cd server && npm start"
     },
   
