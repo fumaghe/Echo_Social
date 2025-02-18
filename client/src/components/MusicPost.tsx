@@ -8,7 +8,6 @@ interface User {
   _id: string;
   username: string;
   avatarUrl?: string;
-  // Aggiungi se vuoi: spotifyAccessToken?: string; ...
 }
 
 export interface Post {
@@ -20,8 +19,9 @@ export interface Post {
   likesCount: number;
   commentsCount: number;
   createdAt: string;
-  coverUrl?: string;
-  trackUrl?: string;
+  coverUrl?: string;   // Copertina canzone
+  trackUrl?: string;   // Link a Spotify
+  imageUrl?: string;   // <--- Assicurati di aggiungere anche qui se non l'hai fatto
   likes?: string[];
   comments?: {
     user: string;
@@ -60,15 +60,12 @@ export function MusicPost({ post, onLike, onComment, onShare }: MusicPostProps) 
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  // Se l'utente è loggato con Spotify (ovvero ha un access token), cliccare la copertina
-  // mostrerà il player. Altrimenti, cliccare reindirizza a Spotify.
+  // Gestione cover canzone (se l'utente ha spotifyAccessToken)
   const handleCoverClick = () => {
     if (!post.trackUrl) return;
     if (currentUser?.spotifyAccessToken) {
-      // Se l'utente ha Spotify, mostra il player
       setShowPlayer(true);
     } else {
-      // Altrimenti, apri la pagina di Spotify in una nuova scheda
       window.open(post.trackUrl, '_blank');
     }
   };
@@ -87,11 +84,7 @@ export function MusicPost({ post, onLike, onComment, onShare }: MusicPostProps) 
         />
       );
     }
-    return (
-      <div className="mt-2 h-20 bg-gray-200 rounded flex items-center justify-center">
-        <span className="text-gray-500">Nessun brano</span>
-      </div>
-    );
+    return null;
   };
 
   return (
@@ -105,9 +98,7 @@ export function MusicPost({ post, onLike, onComment, onShare }: MusicPostProps) 
           />
           <div className="ml-3">
             <h3 className="font-medium">{post.user?.username || 'Unknown User'}</h3>
-            <p className="text-sm text-gray-500">
-              {new Date(post.createdAt).toLocaleDateString()}
-            </p>
+            <p className="text-sm text-gray-500">{new Date(post.createdAt).toLocaleDateString()}</p>
           </div>
         </div>
         <button className="text-gray-400 hover:text-gray-600">
@@ -115,12 +106,27 @@ export function MusicPost({ post, onLike, onComment, onShare }: MusicPostProps) 
         </button>
       </div>
 
-      <div className="mt-4 bg-gray-100 p-4 rounded-lg">
-        <h4 className="font-semibold">{post.songTitle}</h4>
-        <p className="text-gray-600">{post.artist}</p>
-        {renderCoverOrPlayer()}
-      </div>
+      {/* Se esiste un'immagine caricata (imageUrl), la mostriamo qui */}
+      {post.imageUrl && (
+        <div className="mt-4">
+          <img
+            src={post.imageUrl}
+            alt="Uploaded content"
+            className="w-full rounded"
+          />
+        </div>
+      )}
 
+      {/* Se esiste una canzone (songTitle o coverUrl), mostriamo la sezione canzone */}
+      {(post.songTitle || post.coverUrl) && (
+        <div className="mt-4 bg-gray-100 p-4 rounded-lg">
+          <h4 className="font-semibold">{post.songTitle}</h4>
+          <p className="text-gray-600">{post.artist}</p>
+          {renderCoverOrPlayer()}
+        </div>
+      )}
+
+      {/* Descrizione del post */}
       <p className="mt-3 text-gray-700">{post.description}</p>
 
       <div className="mt-4 flex items-center gap-6 text-gray-500">
@@ -146,6 +152,7 @@ export function MusicPost({ post, onLike, onComment, onShare }: MusicPostProps) 
         </button>
       </div>
 
+      {/* Sezione commenti */}
       {showCommentBox && (
         <div className="mt-2 transition-all duration-300 ease-in-out">
           <textarea

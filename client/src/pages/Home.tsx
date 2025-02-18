@@ -1,5 +1,5 @@
 // client/src/pages/Home.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MusicPost, Post } from '../components/MusicPost';
 import { ShareModal } from '../components/ShareModal';
 import { useAuth } from '../context/AuthContext';
@@ -12,16 +12,28 @@ export function Home() {
   
   // Stati per la creazione del nuovo post
   const [description, setDescription] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
+  // useremo imageFile per il caricamento, e non imageUrl
+  const [imageFile, setImageFile] = useState<File | null>(null);
   
   // Stati per la ricerca di brani
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [selectedTrack, setSelectedTrack] = useState<any>(null);
+  const searchTimeoutRef = useRef<number | null>(null);
 
   // Stato per il modal di condivisione
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [sharePostId, setSharePostId] = useState<string>('');
+
+  // Funzione helper per convertire un file in Base64
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
 
   // Recupera i post
   const fetchPosts = async () => {
@@ -38,9 +50,21 @@ export function Home() {
     fetchPosts();
   }, []);
 
-  // Ricerca Spotify
+  // Ricerca automatica con debounce
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    if (searchQuery.trim().length < 3) {
+      setSearchResults([]);
+      return;
+    }
+    searchTimeoutRef.current = window.setTimeout(() => {
+      handleSearch();
+    }, 500);
+  }, [searchQuery]);
+
   const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
     try {
       const res = await fetch(`${API_URL}/api/spotify/search?query=${encodeURIComponent(searchQuery)}`);
       const data = await res.json();
@@ -60,15 +84,25 @@ export function Home() {
     setSearchQuery('');
   };
 
-  // Creazione del post (salviamo anche trackUrl)
+  // Creazione del post
   const handleCreatePost = async () => {
     if (!user) {
       alert("Devi essere autenticato!");
       return;
     }
-    if (!description && !imageUrl && !selectedTrack) {
+    // Se non hai inserito testo, foto o canzone, impedisci la creazione
+    if (!description && !imageFile && !selectedTrack) {
       alert("Inserisci almeno del testo, una foto o seleziona una canzone!");
       return;
+    }
+
+    let finalImageUrl = '';
+    if (imageFile) {
+      try {
+        finalImageUrl = await convertFileToBase64(imageFile);
+      } catch (error) {
+        console.error("Errore nella conversione del file:", error);
+      }
     }
 
     const newPostData = {
@@ -78,7 +112,7 @@ export function Home() {
         avatarUrl: user.avatarUrl || ''
       },
       description,
-      imageUrl,
+      imageUrl: finalImageUrl, // Utilizziamo la stringa Base64
       songTitle: selectedTrack ? selectedTrack.name : '',
       artist: selectedTrack ? selectedTrack.artists[0].name : '',
       coverUrl: selectedTrack ? selectedTrack.album.images[0]?.url : '',
@@ -94,14 +128,14 @@ export function Home() {
       const savedPost = await res.json();
       setPosts([savedPost, ...posts]);
       setDescription('');
-      setImageUrl('');
+      setImageFile(null);
       setSelectedTrack(null);
     } catch (err) {
       console.error(err);
     }
   };
 
-  // Handler per like e commento
+  // Handler per like
   const handleLike = async (postId: string) => {
     if (!user) return;
     try {
@@ -138,7 +172,7 @@ export function Home() {
     setShareModalOpen(true);
   };
 
-  // Invia il post condiviso: crea un riepilogo del post da condividere
+  // Invia il post condiviso
   const sendSharedPost = async (friendId: string, extraMessage: string) => {
     if (!user) return;
     try {
@@ -192,10 +226,13 @@ export function Home() {
 
         <div className="mb-2">
           <input
-            type="text"
-            placeholder="URL della foto (opzionale)"
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
+            type="file"
+            accept="image/*"
+            onChange={e => {
+              if (e.target.files && e.target.files[0]) {
+                setImageFile(e.target.files[0]);
+              }
+            }}
             className="border p-2 w-full"
           />
         </div>
@@ -208,9 +245,6 @@ export function Home() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="border p-2 w-full"
           />
-          <button onClick={handleSearch} className="mt-2 px-4 py-2 bg-blue-500 text-white rounded">
-            Cerca
-          </button>
         </div>
         {searchResults.length > 0 && (
           <div className="border p-2 mb-2">
