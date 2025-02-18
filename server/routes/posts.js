@@ -12,17 +12,17 @@ const PostSchema = new mongoose.Schema({
     avatarUrl: { type: String, default: '' }
   },
   description: { type: String, default: '' },
-  imageUrl: { type: String, default: '' },
+  imageUrl: { type: String, default: '' },  // Campo per l'immagine caricata (Base64)
   songTitle: { type: String, default: '' },
   artist: { type: String, default: '' },
-  coverUrl: { type: String, default: '' },    // URL della copertina
+  coverUrl: { type: String, default: '' },    // URL della copertina della canzone
   trackUrl: { type: String, default: '' },    // Link diretto a Spotify
   likesCount: { type: Number, default: 0 },
   likes: [{ type: String }],
   commentsCount: { type: Number, default: 0 },
   comments: [{
     user: { type: String, required: true },
-    username: { type: String, required: true, default: '' }, // Nome del commentatore
+    username: { type: String, required: true, default: '' },
     text: { type: String, required: true },
     createdAt: { type: Date, default: Date.now }
   }],
@@ -112,6 +112,29 @@ router.post('/:id/comment', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Errore nell\'aggiunta del commento' });
+  }
+});
+
+// DELETE: Elimina un post se l'utente loggato è l'autore
+router.delete('/:id', async (req, res) => {
+  try {
+    const postId = req.params.id;
+    const { userId } = req.body; // Riceviamo userId dal frontend
+    if (!userId) return res.status(400).json({ error: 'Manca userId' });
+
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ error: 'Post non trovato' });
+
+    // Verifica che l'utente che richiede la cancellazione sia l'autore
+    if (post.user._id !== userId) {
+      return res.status(403).json({ error: 'Non autorizzato a cancellare questo post' });
+    }
+
+    await Post.findByIdAndDelete(postId);
+    res.json({ message: 'Post eliminato correttamente' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Errore nella cancellazione del post' });
   }
 });
 

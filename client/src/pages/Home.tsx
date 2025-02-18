@@ -12,7 +12,6 @@ export function Home() {
   
   // Stati per la creazione del nuovo post
   const [description, setDescription] = useState('');
-  // useremo imageFile per il caricamento, e non imageUrl
   const [imageFile, setImageFile] = useState<File | null>(null);
   
   // Stati per la ricerca di brani
@@ -25,7 +24,7 @@ export function Home() {
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [sharePostId, setSharePostId] = useState<string>('');
 
-  // Funzione helper per convertire un file in Base64
+  // Helper: converti file in Base64
   const convertFileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -90,7 +89,6 @@ export function Home() {
       alert("Devi essere autenticato!");
       return;
     }
-    // Se non hai inserito testo, foto o canzone, impedisci la creazione
     if (!description && !imageFile && !selectedTrack) {
       alert("Inserisci almeno del testo, una foto o seleziona una canzone!");
       return;
@@ -112,7 +110,7 @@ export function Home() {
         avatarUrl: user.avatarUrl || ''
       },
       description,
-      imageUrl: finalImageUrl, // Utilizziamo la stringa Base64
+      imageUrl: finalImageUrl,
       songTitle: selectedTrack ? selectedTrack.name : '',
       artist: selectedTrack ? selectedTrack.artists[0].name : '',
       coverUrl: selectedTrack ? selectedTrack.album.images[0]?.url : '',
@@ -170,6 +168,27 @@ export function Home() {
   const handleShare = (postId: string) => {
     setSharePostId(postId);
     setShareModalOpen(true);
+  };
+
+  // Handler per cancellare un post
+  const handleDeletePost = async (postId: string) => {
+    if (!user) return;
+    try {
+      const res = await fetch(`${API_URL}/api/posts/${postId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user._id })
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        alert(errorData.error || 'Errore nella cancellazione del post');
+        return;
+      }
+      setPosts(prev => prev.filter(p => p._id !== postId));
+    } catch (err) {
+      console.error(err);
+      alert('Errore del server nella cancellazione del post');
+    }
   };
 
   // Invia il post condiviso
@@ -307,6 +326,7 @@ export function Home() {
             onLike={handleLike}
             onComment={handleComment}
             onShare={handleShare}
+            onDelete={handleDeletePost}
           />
         ))}
       </div>

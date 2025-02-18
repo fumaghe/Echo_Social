@@ -21,7 +21,7 @@ export interface Post {
   createdAt: string;
   coverUrl?: string;   // Copertina canzone
   trackUrl?: string;   // Link a Spotify
-  imageUrl?: string;   // <--- Assicurati di aggiungere anche qui se non l'hai fatto
+  imageUrl?: string;   // Immagine caricata
   likes?: string[];
   comments?: {
     user: string;
@@ -36,13 +36,15 @@ interface MusicPostProps {
   onLike: (postId: string) => void;
   onComment: (postId: string, comment: string) => void;
   onShare: (postId: string) => void;
+  onDelete: (postId: string) => void;
 }
 
-export function MusicPost({ post, onLike, onComment, onShare }: MusicPostProps) {
+export function MusicPost({ post, onLike, onComment, onShare, onDelete }: MusicPostProps) {
   const [showCommentBox, setShowCommentBox] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [showCommentsList, setShowCommentsList] = useState(false);
   const [showPlayer, setShowPlayer] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Recuperiamo l'utente dal contesto Auth
   const { user: currentUser } = useAuth();
@@ -60,7 +62,6 @@ export function MusicPost({ post, onLike, onComment, onShare }: MusicPostProps) 
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  // Gestione cover canzone (se l'utente ha spotifyAccessToken)
   const handleCoverClick = () => {
     if (!post.trackUrl) return;
     if (currentUser?.spotifyAccessToken) {
@@ -87,9 +88,14 @@ export function MusicPost({ post, onLike, onComment, onShare }: MusicPostProps) 
     return null;
   };
 
+  const handleDeletePost = () => {
+    onDelete(post._id);
+    setMenuOpen(false);
+  };
+
   return (
     <article className="bg-white rounded-lg shadow-sm p-4 mb-4">
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between relative">
         <div className="flex items-center">
           <img
             src={post.user?.avatarUrl || 'https://dummyimage.com/40x40/ccc/fff'}
@@ -101,12 +107,27 @@ export function MusicPost({ post, onLike, onComment, onShare }: MusicPostProps) 
             <p className="text-sm text-gray-500">{new Date(post.createdAt).toLocaleDateString()}</p>
           </div>
         </div>
-        <button className="text-gray-400 hover:text-gray-600">
-          <MoreHorizontal className="w-5 h-5" />
-        </button>
+        <div className="relative">
+          <button
+            className="text-gray-400 hover:text-gray-600"
+            onClick={() => setMenuOpen(!menuOpen)}
+          >
+            <MoreHorizontal className="w-5 h-5" />
+          </button>
+          {menuOpen && currentUser?._id === post.user._id && (
+            <div className="absolute right-0 top-6 bg-white border rounded shadow p-2 z-10">
+              <button
+                onClick={handleDeletePost}
+                className="block w-full text-left px-3 py-1 text-red-600 hover:bg-gray-100"
+              >
+                Elimina post
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Se esiste un'immagine caricata (imageUrl), la mostriamo qui */}
+      {/* Visualizzazione dell'immagine caricata */}
       {post.imageUrl && (
         <div className="mt-4">
           <img
@@ -117,7 +138,7 @@ export function MusicPost({ post, onLike, onComment, onShare }: MusicPostProps) 
         </div>
       )}
 
-      {/* Se esiste una canzone (songTitle o coverUrl), mostriamo la sezione canzone */}
+      {/* Se esiste una canzone (songTitle o coverUrl) */}
       {(post.songTitle || post.coverUrl) && (
         <div className="mt-4 bg-gray-100 p-4 rounded-lg">
           <h4 className="font-semibold">{post.songTitle}</h4>
@@ -152,7 +173,6 @@ export function MusicPost({ post, onLike, onComment, onShare }: MusicPostProps) 
         </button>
       </div>
 
-      {/* Sezione commenti */}
       {showCommentBox && (
         <div className="mt-2 transition-all duration-300 ease-in-out">
           <textarea
