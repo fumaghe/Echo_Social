@@ -121,7 +121,7 @@ router.get('/requests/:userId', async (req, res) => {
 router.get('/:userId', async (req, res) => {
   try {
     const user = await User.findById(req.params.userId)
-      .populate('friends', 'username fullName avatarUrl');
+      .populate('friends', 'username fullName avatarUrl spotifyAccessToken'); // Aggiunto spotifyAccessToken
     if (!user) return res.status(404).json({ message: 'Utente non trovato' });
     res.json(user.friends);
   } catch (err) {

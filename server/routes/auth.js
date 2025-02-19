@@ -37,25 +37,29 @@ router.post('/login', async (req, res) => {
 /**
  * GET /api/auth/spotify
  * Reindirizza l'utente alla pagina di autorizzazione di Spotify.
+ * Aggiungi le scope necessarie per leggere e salvare brani, e vedere il now playing.
  */
 router.get('/spotify', (req, res) => {
   const scopes = [
     'user-read-email',
-    'user-read-private'
-    // Aggiungi altri scope se necessario
+    'user-read-private',
+    'user-read-currently-playing',
+    'user-read-playback-state',
+    'user-library-modify', // per aggiungere brani alla libreria
   ];
   const params = new URLSearchParams({
     client_id: process.env.SPOTIFY_CLIENT_ID,
     response_type: 'code',
-    redirect_uri: process.env.SPOTIFY_REDIRECT_URI, // Deve corrispondere a quello registrato su Spotify
+    redirect_uri: process.env.SPOTIFY_REDIRECT_URI,
     scope: scopes.join(' ')
   });
+  // reindirizza a Spotify
   res.redirect(`https://accounts.spotify.com/authorize?${params.toString()}`);
 });
 
 /**
  * GET /api/auth/spotify/callback
- * Riceve il code da Spotify, scambia il code per i token e crea/aggiorna l'utente.
+ * Riceve il 'code' da Spotify, scambia il code per i token e crea/aggiorna l'utente.
  * Al termine, reindirizza al frontend includendo l'ID dell'utente nella query string.
  */
 router.get('/spotify/callback', async (req, res) => {
@@ -63,7 +67,7 @@ router.get('/spotify/callback', async (req, res) => {
   if (!code) return res.status(400).json({ error: 'Manca il code di Spotify' });
   
   try {
-    // Scambia il code per i token
+    // Scambia il code con i token
     const tokenRes = await axios.post(
       'https://accounts.spotify.com/api/token',
       new URLSearchParams({
@@ -77,7 +81,7 @@ router.get('/spotify/callback', async (req, res) => {
     );
     const { access_token, refresh_token } = tokenRes.data;
 
-    // Recupera i dati dell'utente da Spotify
+    // Recupera i dati dell'utente da Spotify (profile)
     const userProfileRes = await axios.get('https://api.spotify.com/v1/me', {
       headers: { Authorization: `Bearer ${access_token}` }
     });
@@ -85,13 +89,13 @@ router.get('/spotify/callback', async (req, res) => {
     const spotifyEmail = userProfileRes.data.email || 'unknown@spotify.com';
     const displayName = userProfileRes.data.display_name || 'Senza Nome';
 
-    // Cerca l'utente tramite spotifyId; se non esiste, crealo
+    // Cerca l'utente tramite spotifyId. Se non esiste, lo crea.
     let user = await User.findOne({ spotifyId });
     if (!user) {
       user = new User({
-        username: spotifyEmail, // o scegli un naming diverso
+        username: spotifyEmail,
         fullName: displayName,
-        password: 'spotify-login', // placeholder; in produzione gestisci diversamente
+        password: 'spotify-login', // placeholder
         spotifyId,
         spotifyAccessToken: access_token,
         spotifyRefreshToken: refresh_token
@@ -104,7 +108,7 @@ router.get('/spotify/callback', async (req, res) => {
       await user.save();
     }
 
-    // Redirect al frontend includendo l'ID dell'utente
+    // Redirect al frontend (puoi cambiare la query a piacere)
     res.redirect(`${process.env.FRONTEND_URL}/?spotifyLogin=success&userId=${user._id}`);
   } catch (err) {
     console.error('Errore callback Spotify:', err);
@@ -114,7 +118,7 @@ router.get('/spotify/callback', async (req, res) => {
 
 /**
  * GET /api/auth/me
- * Ritorna i dati dell'utente autenticato in base a userId passato come query parameter.
+ * Ritorna i dati dell'utente in base a userId passato come query param.
  */
 router.get('/me', async (req, res) => {
   const userId = req.query.userId;

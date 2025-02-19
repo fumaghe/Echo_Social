@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MusicPost, Post } from '../components/MusicPost';
 import { ShareModal } from '../components/ShareModal';
 import { useAuth } from '../context/AuthContext';
+import { NowPlayingFriends } from '../components/NowPlayingFriends';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -226,6 +227,11 @@ export function Home() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 md:ml-16">
+      {/* Componente NowPlayingFriends in alto */}
+      <div className="mb-4">
+        <NowPlayingFriends />
+      </div>
+
       <header className="mb-6">
         <h1 className="text-2xl font-bold">Echo</h1>
         <p className="text-gray-600">Discover and share music with friends</p>
