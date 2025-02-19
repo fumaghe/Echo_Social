@@ -24,9 +24,8 @@ const messageRoutes = require('./routes/messages');
 const conversationRoutes = require('./routes/conversations');
 const postRoutes = require('./routes/posts');
 const notificationRoutes = require('./routes/notifications');
-
-// Rotta per Spotify (nuova!)
 const spotifyRoutes = require('./routes/spotify');
+const statsRoutes = require('./routes/stats'); // <-- Aggiunto per le statistiche
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -36,6 +35,7 @@ app.use('/api/conversations', conversationRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/spotify', spotifyRoutes);
+app.use('/api/stats', statsRoutes); // <-- Aggiunto per le statistiche
 
 // ======================================================
 // Connessione a MongoDB

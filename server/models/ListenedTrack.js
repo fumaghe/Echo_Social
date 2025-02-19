@@ -17,8 +17,9 @@ const ListenedTrackSchema = new mongoose.Schema({
   genres: [{ type: String }],                   // generi (unione di quelli degli artisti)
   count: { type: Number, default: 0 },          // quante volte l'utente ha ascoltato
   listenedDates: [{ type: Date }],              // date/timestamps di ogni ascolto
+}, { timestamps: true });
 
-  // (manteniamo listenedAt se preferisci, ma listenedDates risulta più preciso se vogliamo tutte le volte)
-}, { timestamps: true }); // "timestamps" crea anche createdAt e updatedAt
+// Indice unico su (user, trackId) per evitare duplicati
+ListenedTrackSchema.index({ user: 1, trackId: 1 }, { unique: true });
 
 module.exports = mongoose.model('ListenedTrack', ListenedTrackSchema);
