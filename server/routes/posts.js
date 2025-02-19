@@ -4,7 +4,12 @@ const router = express.Router();
 const mongoose = require('mongoose');
 const Notification = require('../models/Notification');
 
-// Schema dei Post
+// Se vuoi mantenere lo schema inline puoi farlo, o importare da ../models/Post
+// Esempio: const Post = require('../models/Post');
+
+/**
+ * (Esempio di schema inline, come già hai fatto)
+ */
 const PostSchema = new mongoose.Schema({
   user: {
     _id: { type: String, required: true },
@@ -12,11 +17,11 @@ const PostSchema = new mongoose.Schema({
     avatarUrl: { type: String, default: '' }
   },
   description: { type: String, default: '' },
-  imageUrl: { type: String, default: '' },  // Campo per l'immagine caricata (Base64)
+  imageUrl: { type: String, default: '' },
   songTitle: { type: String, default: '' },
   artist: { type: String, default: '' },
-  coverUrl: { type: String, default: '' },    // URL della copertina della canzone
-  trackUrl: { type: String, default: '' },    // Link diretto a Spotify
+  coverUrl: { type: String, default: '' },
+  trackUrl: { type: String, default: '' },
   likesCount: { type: Number, default: 0 },
   likes: [{ type: String }],
   commentsCount: { type: Number, default: 0 },
@@ -28,13 +33,24 @@ const PostSchema = new mongoose.Schema({
   }],
   createdAt: { type: Date, default: Date.now }
 });
-
 const Post = mongoose.model('Post', PostSchema);
 
-// GET: Recupera tutti i post
+/**
+ * GET /api/posts
+ * Se viene passato ?user=<userId>, restituisce solo i post di quell'utente
+ * altrimenti tutti i post
+ */
 router.get('/', async (req, res) => {
   try {
-    const posts = await Post.find().sort({ createdAt: -1 });
+    const { user } = req.query;
+    
+    let filter = {};
+    if (user) {
+      // Nota: Poiché "user._id" nel post schema è una stringa, filtriamo su "user._id"
+      filter = { 'user._id': user };
+    }
+    
+    const posts = await Post.find(filter).sort({ createdAt: -1 });
     res.json(posts);
   } catch (err) {
     console.error(err);
@@ -49,7 +65,15 @@ router.post('/', async (req, res) => {
     if (!user || !user._id || !user.username) {
       return res.status(400).json({ error: 'Informazioni utente mancanti' });
     }
-    const newPost = new Post({ user, description, imageUrl, songTitle, artist, coverUrl, trackUrl });
+    const newPost = new Post({
+      user,
+      description,
+      imageUrl,
+      songTitle,
+      artist,
+      coverUrl,
+      trackUrl
+    });
     const savedPost = await newPost.save();
     res.json(savedPost);
   } catch (err) {
@@ -58,7 +82,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// POST: Toggle like per un post e genera notifica
+// POST: Toggle like per un post
 router.post('/:id/like', async (req, res) => {
   try {
     const { userId, username } = req.body;
@@ -70,6 +94,7 @@ router.post('/:id/like', async (req, res) => {
     const likeIndex = post.likes.indexOf(userId);
     if (likeIndex === -1) {
       post.likes.push(userId);
+      // Notifica
       if (userId !== post.user._id) {
         await Notification.create({
           user: post.user._id,
@@ -89,7 +114,7 @@ router.post('/:id/like', async (req, res) => {
   }
 });
 
-// POST: Aggiungi un commento a un post e genera notifica
+// POST: Aggiungi un commento
 router.post('/:id/comment', async (req, res) => {
   try {
     const { userId, text, username } = req.body;
@@ -100,6 +125,7 @@ router.post('/:id/comment', async (req, res) => {
 
     post.comments.push({ user: userId, username, text });
     post.commentsCount = post.comments.length;
+    // Notifica
     if (userId !== post.user._id) {
       await Notification.create({
         user: post.user._id,

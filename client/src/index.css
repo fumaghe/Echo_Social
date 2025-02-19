@@ -4,120 +4,112 @@
 
 /* Regole personalizzate */
 body {
-    margin: 0;
-    padding: 0;
-    font-family: 'Helvetica Neue', Arial, sans-serif;
-    background-color: #f7fafc;
-    color: #2d3748;
-  }
-  
-  nav {
-    background-color: #fff;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-  
-  form {
-    background: #ffffff;
-    padding: 1.5rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  }
-  
-  button {
-    cursor: pointer;
-    transition: background-color 0.3s;
-  }
-  
-  button:hover {
-    filter: brightness(0.9);
-  }
-  
+  margin: 0;
+  padding: 0;
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  background-color: #f7fafc;
+  color: #2d3748;
+}
 
-  .now-playing-container {
-    position: relative;
-    display: inline-block;
-    transition: width 0.3s ease-in-out, height 0.3s ease-in-out;
-    cursor: pointer;
-    overflow: visible;      /* per non tagliare la pulsazione */
-    margin: 16px;          /* spazio intorno al cerchio */
+/* Navbar: non servono regole aggiuntive qui 
+   perché la maggior parte è gestita in Tailwind. */
+
+form {
+  background: #ffffff;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+button {
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  filter: brightness(0.9);
+}
+
+/* Sezione now playing (NON CANCELLARE) */
+.now-playing-container {
+  position: relative;
+  display: inline-block;
+  transition: width 0.3s ease-in-out, height 0.3s ease-in-out;
+  cursor: pointer;
+  overflow: visible;
+  margin: 16px;
+}
+
+.now-playing-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: #1e1e1e;
+  position: relative;
+  animation: pulseOutline 2s infinite;
+}
+
+.now-playing-expanded {
+  width: 320px;
+  height: 120px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  background-color: #1e1e1e;
+  position: relative;
+}
+
+.now-playing-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  z-index: 1;
+}
+
+@keyframes pulseOutline {
+  0% {
+    box-shadow: 0 0 0 0 rgba(29, 185, 84, 0.7);
   }
-  
-  /* Cerchio base (80x80) con pulsazione del contorno */
-  .now-playing-circle {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    background-color: #1e1e1e;
-    position: relative;
-    animation: pulseOutline 2s infinite;
+  70% {
+    box-shadow: 0 0 0 10px rgba(29, 185, 84, 0);
   }
-  
-  /* Rettangolo espanso (quando cliccato) */
-  .now-playing-expanded {
-    width: 320px;
-    height: 120px;
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    padding: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-    background-color: #1e1e1e;
-    position: relative;
+  100% {
+    box-shadow: 0 0 0 0 rgba(29, 185, 84, 0);
   }
-  
-  .now-playing-avatar {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 50%;
-    z-index: 1;
-  }
-  
-  /* Animazione di pulsazione del contorno */
-  @keyframes pulseOutline {
-    0% {
-      box-shadow: 0 0 0 0 rgba(29, 185, 84, 0.7);
-    }
-    70% {
-      box-shadow: 0 0 0 10px rgba(29, 185, 84, 0);
-    }
-    100% {
-      box-shadow: 0 0 0 0 rgba(29, 185, 84, 0);
-    }
-  }
-  
-  /* Immagine album */
-  .now-playing-image {
-    width: 70px;
-    height: 70px;
-    border-radius: 8px;
-    margin-right: 8px;
-    object-fit: cover;
-  }
-  
-  .now-playing-info {
-    color: #fff;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-  
-  .now-playing-add-btn {
-    background-color: #1db954;
-    color: #fff;
-    border: none;
-    padding: 4px 8px;
-    border-radius: 16px;
-    font-size: 0.8rem;
-    cursor: pointer;
-    margin-top: 4px;
-  }
-  
-  /* Overlay per chiudere cliccando fuori */
-  .now-playing-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 40;
-    background: transparent;
-  }
-  
+}
+
+.now-playing-image {
+  width: 70px;
+  height: 70px;
+  border-radius: 8px;
+  margin-right: 8px;
+  object-fit: cover;
+}
+
+.now-playing-info {
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.now-playing-add-btn {
+  background-color: #1db954;
+  color: #fff;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 16px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+.now-playing-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: transparent;
+}
