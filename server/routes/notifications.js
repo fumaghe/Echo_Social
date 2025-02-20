@@ -1,9 +1,8 @@
-// server/routes/notifications.js
 const express = require('express');
 const router = express.Router();
 const Notification = require('../models/Notification');
 
-// GET: Recupera le notifiche per un utente
+// GET: Recupera le notifiche per un utente, ordinate dal più recente al meno recente
 router.get('/', async (req, res) => {
   const { userId } = req.query;
   try {
@@ -22,6 +21,18 @@ router.post('/', async (req, res) => {
     const notification = new Notification({ user, message, type, partnerId });
     await notification.save();
     res.json(notification);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Errore del server' });
+  }
+});
+
+// PATCH: Marca tutte le notifiche come lette per un utente
+router.patch('/mark-read', async (req, res) => {
+  const { userId } = req.body;
+  try {
+    await Notification.updateMany({ user: userId, read: false }, { read: true });
+    res.json({ message: 'Notifiche marcate come lette' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Errore del server' });

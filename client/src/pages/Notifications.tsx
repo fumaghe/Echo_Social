@@ -1,4 +1,3 @@
-// client/src/pages/Notifications.tsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -7,52 +6,45 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 export function Notifications() {
   const { user } = useAuth();
-  const [friendRequests, setFriendRequests] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
 
   useEffect(() => {
     if (!user) return;
+
+    // Salva il timestamp corrente per indicare l'ultimo accesso alla pagina notifiche
+    const now = new Date();
+    localStorage.setItem("lastNotificationsVisit", now.toISOString());
+
+    // Prima, marca tutte le notifiche come lette sul server...
     axios
-      .get(`${API_URL}/api/friends/requests/${user._id}`)
-      .then(res => setFriendRequests(res.data))
+      .patch(`${API_URL}/api/notifications/mark-read`, { userId: user._id })
+      .then(() => {
+        // ... poi recupera le notifiche aggiornate (escludendo quelle di tipo "message")
+        return axios.get(`${API_URL}/api/notifications?userId=${user._id}`);
+      })
+      .then(res => {
+        const filtered = res.data
+          .filter((notif: any) => notif.type !== 'message')
+          .map((notif: any) => ({ ...notif, read: true })); // forza read a true
+        setNotifications(filtered);
+      })
       .catch(err => console.error(err));
   }, [user]);
-
-  const handleAccept = async (fromUserId: string) => {
-    if (!user) return;
-    try {
-      await axios.post(`${API_URL}/api/friends/accept`, {
-        userId: user._id,
-        fromUserId
-      });
-      alert('Richiesta accettata!');
-      const res = await axios.get(`${API_URL}/api/friends/requests/${user._id}`);
-      setFriendRequests(res.data);
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Errore');
-    }
-  };
 
   if (!user) return <div>Caricamento...</div>;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 md:ml-16">
       <h1 className="text-2xl font-bold mb-4">Notifiche</h1>
-      <h2 className="text-xl font-semibold mb-2">Richieste di amicizia</h2>
-      {friendRequests.length === 0 ? (
-        <p>Nessuna richiesta di amicizia</p>
+      {notifications.length === 0 ? (
+        <p>Nessuna notifica</p>
       ) : (
-        friendRequests.map(req => (
-          <div key={req._id} className="flex items-center justify-between p-2 border-b">
+        notifications.map(notif => (
+          <div key={notif._id} className="p-2 border-b flex justify-between items-center">
             <div>
-              <p className="font-bold">{req.username}</p>
-              <p className="text-sm text-gray-600">{req.fullName}</p>
+              <p className="font-bold">{notif.message}</p>
+              <p className="text-sm text-gray-600">{new Date(notif.createdAt).toLocaleString()}</p>
             </div>
-            <button
-              onClick={() => handleAccept(req._id)}
-              className="bg-green-500 text-white px-3 py-1 rounded"
-            >
-              Accetta
-            </button>
           </div>
         ))
       )}

@@ -1,4 +1,3 @@
-// client/src/components/NotificationBar.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -12,7 +11,6 @@ interface Notification {
   partnerId?: string;
 }
 
-// Legge la base URL da env
 const API_URL = import.meta.env.VITE_API_URL;
 
 export function NotificationBar() {
@@ -20,6 +18,8 @@ export function NotificationBar() {
   const navigate = useNavigate();
 
   const [localNotifications, setLocalNotifications] = useState<Notification[]>([]);
+  // Registra il momento in cui l'utente entra sul sito: solo le notifiche create dopo saranno mostrate in tempo reale
+  const sessionStartRef = useRef<Date>(new Date());
   const userNotificationsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -28,13 +28,15 @@ export function NotificationBar() {
       axios
         .get<Notification[]>(`${API_URL}/api/notifications?userId=${user._id}`)
         .then(res => {
-          const newNotifications = res.data.filter(
-            n => !userNotificationsRef.current.has(n._id)
-          );
+          // Filtra le notifiche arrivate dopo l'accesso e non ancora visualizzate nella barra
+          const newNotifications = res.data.filter(n => {
+            const notifTime = new Date(n.createdAt);
+            return notifTime >= sessionStartRef.current && !userNotificationsRef.current.has(n._id);
+          });
           if (newNotifications.length > 0) {
             setLocalNotifications(prev => [...prev, ...newNotifications]);
             newNotifications.forEach(n => userNotificationsRef.current.add(n._id));
-            // Rimuove le notifiche locali dopo 5 secondi
+            // Rimuove le notifiche dalla barra dopo 5 secondi
             newNotifications.forEach(n => {
               setTimeout(() => {
                 setLocalNotifications(prev => prev.filter(item => item._id !== n._id));
@@ -50,7 +52,7 @@ export function NotificationBar() {
   const handleClick = (notif: Notification) => {
     setLocalNotifications(prev => prev.filter(n => n._id !== notif._id));
 
-    // Reindirizza in base al tipo di notifica
+    // Naviga in base al tipo di notifica: per friend_request o friend_accept si accede alla pagina notifiche
     if (notif.type === 'message' && notif.partnerId) {
       navigate('/chat', { state: { partnerId: notif.partnerId } });
     } else if (notif.type === 'friend_request' || notif.type === 'friend_accept') {

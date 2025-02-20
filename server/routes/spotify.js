@@ -143,9 +143,9 @@ router.get('/nowplaying', async (req, res) => {
       console.error('Errore nel recupero generi:', gErr);
     }
 
-    // 4) Gestione ascolto e controllo duplicati ravvicinati (3 minuti)
+    // 4) Gestione ascolto e controllo duplicati ravvicinati (4 minuti)
     const now = new Date();
-    const threeMinAgo = new Date(now.getTime() - 3 * 60 * 1000);
+    const threeMinAgo = new Date(now.getTime() - 4 * 60 * 1000);
 
     let listenedDoc = await ListenedTrack.findOne({ user: user._id, trackId });
     if (listenedDoc) {
